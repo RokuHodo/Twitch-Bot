@@ -1,6 +1,6 @@
 # Twitch-Bot
 
-For a comprehensive descirption about the bot and how to set the but yp, go to the [wiki](https://github.com/RokuHodo/Twitch-Bot/wiki)
+For a comprehensive description about the bot and how to set the bot up, go to the [wiki](https://github.com/RokuHodo/Twitch-Bot/wiki).
 
 If you plan to compile this yourself, move the Quotes.txt, Variables.txt, Login.txt, and the Commands folder (containing the Permenant.txt and Normal.txt) into the Debug folder of your project.
 
