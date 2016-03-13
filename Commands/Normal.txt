@@ -1,0 +1,29 @@
+// ===========================================================
+// How to add a commands:
+//
+// *** Syntax: ***
+//	!<command> <response>
+//
+// *** Description ***
+// 	<command> = 	Command to be used in chat
+// 	<response> = The text returned when the command is called.
+// 		To add a special command (a command that calls a function instead of returning text), make the response the same as the command and then add the logic in the source code (no .dll support yet)
+// ===========================================================
+
+!steam Steam: http://steamcommunity.com/id/RokuHodo
+!twitter Twitter: https://twitter.com/RokuHodo
+!youtube YouTube: https://www.youtube.com/user/SixDegreesOfGaming
+!pc Current PC: http://pcpartpicker.com/p/DCnqD3
+!music C:/Users/PJAnd/Documents/Twitch/Now Playing.txt
+
+!test adding a command with no defined permission
+!test2 <mod> adding a command with the mod permission
+!test3 <mod adding a command with incorrect permission syntax 
+!test4 <viewer>
+!test5 <global_mod> 
+!test6 <staff> l
+!test7 Adding a [variable=test] variable by adding a command
+!test8 1
+!test9
+
+!level Current level: [level]
