@@ -10,6 +10,7 @@ using TwitchChatBot.Extensions;
 /*
     TODO(Six):
         - Add in the check to see which cluster to connect to
+        - Check to see if an edited command response containes any new variables
         - Add in the ability to whisper through the command line
         - Debug commands could be more descriptive, but they get the job done for now
         - Make it so that variable values can contain other variables? This seems like it would be a very specific use case.
