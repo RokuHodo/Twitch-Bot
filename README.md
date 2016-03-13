@@ -1,11 +1,6 @@
 # Twitch-Bot
 
-Language: C#
-Framework: 4.5.2
-
-DLL's used: RestSharp
-
-This bot is still in the very early stages of development and is still a work progress. Proper documentation will come in the future, sorry for the inconvenience.
+For a comprehensive descirption about the bot and how to set the but yp, go to the [wiki](https://github.com/RokuHodo/Twitch-Bot/wiki)
 
 If you plan to compile this yourself, move the Quotes.txt, Variables.txt, Login.txt, and the Commands folder (containing the Permenant.txt and Normal.txt) into the Debug folder of your project.
 
