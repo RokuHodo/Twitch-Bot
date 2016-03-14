@@ -4,8 +4,8 @@
     {
         viewer,
         mod,
-        admin,
         global_mod,
+        admin,
         staff
     }
 }
