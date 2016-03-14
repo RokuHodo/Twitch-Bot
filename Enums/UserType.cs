@@ -3,7 +3,7 @@
     enum UserType
     {
         viewer,
-        mod,
+        mod,        
         global_mod,
         admin,
         staff

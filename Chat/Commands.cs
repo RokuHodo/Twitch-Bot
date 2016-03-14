@@ -125,16 +125,32 @@ namespace TwitchChatBot.Chat
         private bool Load(string command, string response, bool permanent, Variables variables, Message message = null, TwitchBot bot = null)
         {
             UserType permission;
+            CommandType command_type;
 
             bool send_response = message != null && bot != null;
 
-            //see if the user specified a permission level and extract it from the response
-            KeyValuePair<UserType, string> parse_response = SeparatePermissionAndResponse(response);                       
+            Debug.BlankLine();            
 
-            response = parse_response.Value;
+            //check where the command can be used
+            KeyValuePair<CommandType, string> command_type_response = SeparateResponse(response, CommandType.Both);
+            command_type = command_type_response.Key;
+            response = command_type_response.Value;
+
+            //get who can use the command
+            KeyValuePair<UserType, string> permisison_response = SeparateResponse(response, UserType.viewer);
+            permission = permisison_response.Key;
+            response = permisison_response.Value;
+
+            //now the command type and permisison have been parsed, search for any variables in the actual response
             response = variables.ParseLoopAdd(response);
 
-            permission = parse_response.Key;
+            //everyone is a viewer when they send a whisper, no point in specifiying a commmand with a specified permisison value
+            if(command_type == CommandType.Whisper && permission != UserType.viewer)
+            {
+                Debug.Notify($"Changing permission from {permission} to viewer");
+
+                permission = UserType.viewer;
+            }
 
             Debug.SubHeader(" Loading command...");
 
@@ -148,7 +164,7 @@ namespace TwitchChatBot.Chat
 
                 Debug.Failed(DebugMethod.Load, DebugObject.Command, DebugError.Syntax);
                 Debug.SubText("Command: " + command);
-                Debug.SubText("Response: " + response);               
+                Debug.SubText("Response: " + response);
 
                 return false;
             }
@@ -170,7 +186,7 @@ namespace TwitchChatBot.Chat
             try
             {
                 //assuming everything went right, add the command to the dictionary
-                commands.Add(command, new Command(permission, command, response, permanent));
+                commands.Add(command, new Command(permission, command, response, permanent, command_type));
 
                 if (send_response)
                 {
@@ -181,7 +197,8 @@ namespace TwitchChatBot.Chat
                 Debug.SubText("Command: " + command);
                 Debug.SubText("Response: " + response);
                 Debug.SubText("Permanent: " + permanent);
-                Debug.SubText("Permission: " + permission);                                             
+                Debug.SubText("Permission: " + permission);
+                Debug.SubText("Command type: " + command_type);
             }
             catch (Exception ex)
             {
@@ -401,7 +418,7 @@ namespace TwitchChatBot.Chat
         /// </summary>
         /// <param name="body">The string to be parsed and checked for a command.</param>
         /// <returns></returns>
-        public string ExtractCommand(string body)
+        public Command ExtractCommand(string body)
         {
             string[] words = body.StringToArray<string>(' ');
 
@@ -409,11 +426,11 @@ namespace TwitchChatBot.Chat
             {
                 if (commands.ContainsKey(word))
                 {
-                    return word;
+                    return commands[word];
                 }
             }
 
-            return string.Empty;
+            return new Command(UserType.viewer, string.Empty, string.Empty, false, CommandType.Both);
         }
 
         /// <summary>
@@ -444,26 +461,16 @@ namespace TwitchChatBot.Chat
             }
 
             return string.Empty;
-        }
-
-        /// <summary>
-        /// Gets the minimum permission required to use a command.
-        /// </summary>
-        /// <param name="command">Command key to be get the permission for.</param>
-        /// <returns></returns>
-        public UserType GetPermission(string command)
-        {
-            return commands[command].permission;
-        }        
+        }       
 
         /// <summary>
         /// Checks to see if the permission matches the proper syntax.
         /// </summary>
         /// <param name="permission">Permission value to check.</param>
         /// <returns></returns>
-        private bool CheckPermissionSyntax(string permission)
+        private bool CheckSeparateSyntax(string permission)
         {
-            if(permission.StartsWith("<") && permission.EndsWith(">"))
+            if(permission.StartsWith("[") && permission.EndsWith("]"))
             {
                 return true;
             }
@@ -809,21 +816,31 @@ namespace TwitchChatBot.Chat
         #region String parsing
 
         /// <summary>
-        /// Parses the response of a command for a potential user specified permission.
-        /// Returns the permission and response substring as a <see cref="KeyValuePair{TKey, TValue}"/> respectively.
-        /// If no permisison is specified, the permission is defaulted to <see cref="UserType.Viewer"/>.
+        /// Searches the response of a <see cref="Command"/> for the command type or the permission level.
         /// </summary>
-        /// <param name="response">Initial response of the command before it is separated.</param>
+        /// <typeparam name="TEnum">A generic <see cref="Enum"/> that can either be <see cref="CommandType"/> or <see cref="UserType"/>. Specifies which command parameter to search for.</typeparam>
+        /// <param name="response">What is returned when the command key is called.</param>
+        /// <param name="default_value">The default value of the <see cref="CommandType"/> or <see cref="UserType"/> to return if no value is specified in the response</param>
         /// <returns></returns>
-        private KeyValuePair<UserType, string> SeparatePermissionAndResponse(string response)
+        private KeyValuePair<TEnum, string> SeparateResponse<TEnum>(string response, TEnum default_value) where TEnum : struct 
         {
-            string value = "";
-
-            UserType permission = UserType.viewer;
+            string separate_tag, 
+                   value = "";
 
             string[] response_array = response.StringToArray<string>(' ');
 
-            Debug.SubHeader(" Separating response...");
+            TEnum enum_value = default_value;
+
+            if(enum_value.GetType() == typeof(UserType))
+            {
+                separate_tag = "Permission";
+            }
+            else
+            {
+                separate_tag = "Command type";
+            }
+
+            Debug.SubHeader($" Separating response for {separate_tag.ToLower()} ...");
 
             //the response is empty, return an empty string  
             if (!response.CheckString())
@@ -831,7 +848,7 @@ namespace TwitchChatBot.Chat
                 Debug.Failed(DebugMethod.Separate, DebugObject.Command, DebugError.Null);
                 Debug.SubText("Response: null");
 
-                return new KeyValuePair<UserType, string>(permission, value);
+                return new KeyValuePair<TEnum, string>(enum_value, value);
             }
 
             //nothing after !addcommand
@@ -839,36 +856,26 @@ namespace TwitchChatBot.Chat
             {
                 Debug.Failed(DebugMethod.Separate, DebugObject.Command, DebugError.Null);
 
-                return new KeyValuePair< UserType, string> (permission, value); 
+                return new KeyValuePair<TEnum, string>(enum_value, value);
             }
 
-            ////new command key needs to be ! followed by at least one character 
-            //if(response_array[0].length < 2)
-            //{
-            //    debug.failed(debugmethod.syntaxcheck, debugobject.command, debugobject.response, syntaxerror.arraylength);
-            //    debug.subtext("command length: " + response_array[0].length);
-            //    debug.subtext("minimum length: 2");
-
-            //    return new keyvaluepair<usertype, string>(permission, value);
-            //}
-
             //check to see if the first word is a valid permission level and has the right syntax
-            if (response_array[0].Length > 1 && Enum.TryParse(response.Substring(1, response_array[0].Length - 2), out permission) && CheckPermissionSyntax(response_array[0]))
+            if (response_array[0].Length > 1 && Enum.TryParse(response.Substring(1, response_array[0].Length - 2), out enum_value) && CheckSeparateSyntax(response_array[0]))
             {
                 if (response_array[0].Length < response.Length)
                 {
                     //valid permisison and there was a response after it
                     value = response.Substring(response_array[0].Length + 1);
 
-                    Debug.Success(DebugMethod.Separate, DebugObject.Command, response + " (permission specified)");
-                    Debug.SubText("Permission: " + permission);
+                    Debug.Success(DebugMethod.Separate, DebugObject.Command, $"{response} ({ separate_tag.ToLower()} specified)");
+                    Debug.SubText(separate_tag + ": " + enum_value);
                     Debug.SubText("Response: " + value);
                 }
                 else
                 {
                     //there was nothing after the permission
                     Debug.Failed(DebugMethod.Separate, DebugObject.Command, DebugError.Null);
-                    Debug.SubText("Permission: " + permission);
+                    Debug.SubText(separate_tag + ": " + enum_value);
                     Debug.SubText("Response: null");
                 }
             }
@@ -877,13 +884,14 @@ namespace TwitchChatBot.Chat
                 //the first word wasn't a permision value, set the response to the entire string
                 value = response;
 
-                Debug.Success(DebugMethod.Separate, DebugObject.Command, response + " (no permission specified)");
-                Debug.SubText("Permission: " + permission);
+                Debug.Success(DebugMethod.Separate, DebugObject.Command, $"{response} (no { separate_tag.ToLower()} specified)");
+                Debug.SubText(separate_tag + ": " + enum_value);
                 Debug.SubText("Response: " + value);
             }
 
-            return new KeyValuePair<UserType, string>(permission, value);
+            return new KeyValuePair<TEnum, string>(enum_value, value);
         }
+
 
         /// <summary>
         /// Parses the body of a <see cref="Message"/> after the command and returns a <see cref="KeyValuePair{TKey, TValue}"/>.
@@ -899,7 +907,7 @@ namespace TwitchChatBot.Chat
                    value = "";
 
             //parse the message for the command key
-            parse_start = message.body.IndexOf(message.command) + message.command.Length + 1;
+            parse_start = message.body.IndexOf(message.command.key) + message.command.key.Length + 1;
             parse_end = message.body.Substring(parse_start).IndexOf(" ") + parse_start;
 
             try
@@ -928,7 +936,7 @@ namespace TwitchChatBot.Chat
         /// <returns></returns>
         public string ParseCommandString(Message message)
         {
-            int parse_start = message.body.IndexOf(message.command) + message.command.Length;
+            int parse_start = message.body.IndexOf(message.command.key) + message.command.key.Length;
 
             string result = "";
 
