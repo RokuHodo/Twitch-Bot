@@ -129,20 +129,9 @@ namespace TwitchChatBot.Chat
 
             bool send_response = message != null && bot != null;
 
-            Debug.BlankLine();            
+            Debug.BlankLine();
 
-            //check where the command can be used
-            KeyValuePair<CommandType, string> command_type_response = SeparateResponse(response, CommandType.Both);
-            command_type = command_type_response.Key;
-            response = command_type_response.Value;
-
-            //get who can use the command
-            KeyValuePair<UserType, string> permisison_response = SeparateResponse(response, UserType.viewer);
-            permission = permisison_response.Key;
-            response = permisison_response.Value;
-
-            //now the command type and permisison have been parsed, search for any variables in the actual response
-            response = variables.ParseLoopAdd(response);
+            response = ParseResponse(response, variables, out command_type, out permission);
 
             //everyone is a viewer when they send a whisper, no point in specifiying a commmand with a specified permisison value
             if(command_type == CommandType.Whisper && permission != UserType.viewer)
@@ -268,13 +257,11 @@ namespace TwitchChatBot.Chat
         /// <param name="bot">Used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the methods to send the chat message or whisper.</param>
         public void Edit(Variables variables, Message message, TwitchBot bot)
         {
-            Debug.SubHeader(" Editing command...");
-
-            message.body = variables.ParseLoopAdd(message.body);
+            Debug.SubHeader(" Editing command...");                       
 
             KeyValuePair<string, string> command = ParseCommandKVP(message);
 
-            Edit(command.Key, command.Value, message, bot);
+            Edit(command.Key, command.Value, variables, message, bot);
         }
 
         /// <summary>
@@ -285,7 +272,7 @@ namespace TwitchChatBot.Chat
         /// <param name="variables">Parses the response for any valid variables and loads them into the <see cref="Variables.variables"/> dictionary.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         /// <param name="bot">Used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the methods to send the chat message or whisper.</param>
-        private void Edit(string command, string response, Message message, TwitchBot bot)
+        private void Edit(string command, string response, Variables variables, Message message, TwitchBot bot)
         {
             //check to see if the syntax is correct
             if (!CheckSyntax(command, response))
@@ -312,14 +299,45 @@ namespace TwitchChatBot.Chat
 
             try
             {
-                //assuming everything went okay, update the response of the command
-                string text = command + " " + commands[command];
-                text.RemoveFromFile(file_path_normal);
+                bool permanent = commands[command].permanent;
 
-                commands[command].response = response;
+                string file_path,
+                       to_append = command;
 
-                text = command + " " + commands[command];
-                text.AppendToFile(file_path_normal);
+                UserType permission;
+                CommandType command_type;
+
+                if (permanent)
+                {
+                    file_path = file_path_permanent;
+                }
+                else
+                {
+                    file_path = file_path_normal;
+                }
+
+                //only remove the lines where the command key is the first word, aka where the command is defined
+                command.RemoveFromFile(file_path, FileFilter.StartsWith);                               
+                
+                response = ParseResponse(response, variables, out command_type, out permission);
+
+                commands[command] = new Command(permission, command, response, permanent, command_type);
+
+                //only append the command type if it is not the default value
+                if(command_type != CommandType.Both)
+                {
+                    to_append += " [" + command_type.ToString() + "]";
+                }
+
+                //only append the permission if it is not the default value
+                if (permission != UserType.viewer)
+                {
+                    to_append += " [" + permission.ToString() + "]";
+                }
+
+                to_append += " " + response;
+
+                to_append.AppendToFile(file_path);
 
                 Notify.Success(bot, DebugMethod.Edit, message, command);
 
@@ -385,9 +403,9 @@ namespace TwitchChatBot.Chat
 
             try
             {
-                //everything went well? remove the command!
-                string text = command + " " + commands[command];
-                text.RemoveFromFile(file_path_normal);
+                //remove any line that STARTS with the command
+                //just in case there is a "!help" type command that lists other command keys
+                command.RemoveFromFile(file_path_normal, FileFilter.StartsWith);
 
                 commands.Remove(command);
 
@@ -955,6 +973,22 @@ namespace TwitchChatBot.Chat
             }
 
             return result;
+        }
+
+        private string ParseResponse(string response, Variables variables, out CommandType command_type, out UserType permission)
+        {
+            //check where the command can be used
+            KeyValuePair<CommandType, string> command_type_response = SeparateResponse(response, CommandType.Both);
+            command_type = command_type_response.Key;
+            response = command_type_response.Value;
+
+            //get who can use the command
+            KeyValuePair<UserType, string> permisison_response = SeparateResponse(response, UserType.viewer);
+            permission = permisison_response.Key;
+            response = permisison_response.Value;
+
+            //now the command type and permisison have been parsed, search for any variables in the actual response
+            return variables.ParseLoopAdd(response);
         }
 
         #endregion

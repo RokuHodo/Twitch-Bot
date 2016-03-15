@@ -7,6 +7,7 @@ using TwitchChatBot.Clients;
 using TwitchChatBot.Debugger;
 using TwitchChatBot.Extensions;
 using TwitchChatBot.Extensions.Files;
+using TwitchChatBot.Enums;
 
 namespace TwitchChatBot.Chat
 {
@@ -274,15 +275,13 @@ namespace TwitchChatBot.Chat
 
             try
             {
-                //now try and edit the value of the variable
-                string text = variable + " " + variables[variable];
-
-                text.RemoveFromFile(file_path);
+                //remove any line that contains the old variable
+                variable.RemoveFromFile(file_path, FileFilter.Contains);
 
                 variables[variable] = value;
 
-                text = variable + " " + variables[variable];
-                text.AppendToFile(file_path);                                   
+                variable = variable + " " + variables[variable];
+                variable.AppendToFile(file_path);                                   
 
                 Notify.Success(bot, DebugMethod.Edit, message, variable);
 
@@ -338,10 +337,8 @@ namespace TwitchChatBot.Chat
 
             try
             {
-                //remove the variable!
-                string text = variable + " " + variables[variable];
-
-                text.RemoveFromFile(file_path);
+                //remove any line that contains the variabel key
+                variable.RemoveFromFile(file_path, FileFilter.Contains);
                 variables.Remove(variable);
 
                 Notify.Success(bot, DebugMethod.Remove, message, variable);
