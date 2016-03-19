@@ -11,8 +11,9 @@
 
         ParseKVP,
         ParseString,
-        
-        Separate,
+
+        Separate,     
+
         SyntaxCheck
     }
 }

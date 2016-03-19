@@ -1,6 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
+
+using TwitchChatBot.Enums;
 
 namespace TwitchChatBot.Extensions.Files
 {
@@ -26,11 +29,30 @@ namespace TwitchChatBot.Extensions.Files
         /// </summary>
         /// <param name="str">String to remove.</param>
         /// <param name="path">Path to the text file.</param>
-        public static void RemoveFromFile(this String str, string path)
+        public static void RemoveFromFile(this String str, string path, FileFilter filter = FileFilter.Exact)
         {
             string temp_file = Path.GetTempFileName();
 
-            var lines_to_keep = File.ReadLines(path).Where(line => line != str);
+            IEnumerable<string> lines_to_keep;
+
+            switch (filter)
+            {
+                case FileFilter.Exact:
+                    lines_to_keep = File.ReadLines(path).Where(line => line != str);
+                    break;
+                case FileFilter.Contains:
+                    lines_to_keep = File.ReadLines(path).Where(line => !line.Contains(str));
+                    break;
+                case FileFilter.EndsWith:
+                    lines_to_keep = File.ReadLines(path).Where(line => !line.EndsWith(str));
+                    break;
+                case FileFilter.StartsWith:
+                    lines_to_keep = File.ReadLines(path).Where(line => !line.StartsWith(str));
+                    break;
+                default:
+                    lines_to_keep = File.ReadLines(path).Where(line => line != str);
+                    break;
+            }
 
             File.WriteAllLines(temp_file, lines_to_keep);
 

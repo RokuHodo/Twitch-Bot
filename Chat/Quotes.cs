@@ -199,19 +199,28 @@ namespace TwitchChatBot.Chat
         {
             int index = quote.LastIndexOf($" - {broadcaster.display_name}");
 
-            string _quote = RemoveSuffix(quote, broadcaster);
+            string suffix;
 
-            if (!_quote.StartsWith("\""))
+            //custom quote loaded from file, return it as is
+            if(index == -1)
             {
-                _quote = "\"" + _quote;
+                return quote;
             }
 
-            if (!_quote.EndsWith("\""))
+            suffix = quote.Substring(index);
+            quote = RemoveSuffix(quote, broadcaster);            
+
+            if (!quote.StartsWith("\""))
             {
-                _quote += "\"";
+                quote = "\"" + quote;
             }
 
-            return _quote + quote.Substring(index);
+            if (!quote.EndsWith("\""))
+            {
+                quote += "\"";
+            }
+
+            return quote + suffix;
         }
 
         /// <summary>

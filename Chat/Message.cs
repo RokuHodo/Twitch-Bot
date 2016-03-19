@@ -10,9 +10,10 @@ namespace TwitchChatBot.Chat
     {
         string prefix;
 
-        public string body, command, room, key;
-
+        public string body, room, key;
+                
         public Sender sender;
+        public Command command;
 
         public Message(MessageType message_type, string irc_message, Commands commands)
         {          

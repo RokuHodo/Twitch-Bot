@@ -5,17 +5,19 @@ namespace TwitchChatBot.Chat
     class Command
     {
         public UserType permission;
+        public CommandType type;
 
-        public string command, response;
+        public string key, response;
 
         public bool permanent;
 
-        public Command(UserType permission, string command, string response, bool permanent)
+        public Command(UserType permission, string key, string response, bool permanent, CommandType type)
         {
-            this.command = command;
+            this.key = key;
             this.response = response;
             this.permanent = permanent;
             this.permission = permission;                   
+            this.type = type;
         }
     }
 }

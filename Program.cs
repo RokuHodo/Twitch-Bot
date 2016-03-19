@@ -25,7 +25,7 @@ namespace TwitchChatBot
         {
             Console.Title = "Twitch Chat Bot";
 
-            string file_path = Environment.CurrentDirectory + "\\Login.txt";            
+            string file_path = Environment.CurrentDirectory + "/Login.txt";            
 
             string[] login = Load(File.ReadAllLines(file_path));
 
@@ -44,7 +44,7 @@ namespace TwitchChatBot
 
             if (!broadcaster.display_name.CheckString())
             {
-                Debug.Failed("Failed find the broadcaster");
+                Debug.Failed("Failed to find the broadcaster");
 
                 Console.WriteLine(Environment.NewLine + "Press any key to exit...");
                 Console.ReadKey();
