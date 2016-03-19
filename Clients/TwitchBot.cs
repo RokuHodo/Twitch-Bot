@@ -214,7 +214,7 @@ namespace TwitchChatBot.Clients
         /// <param name="bot">Required to send a chat message or whisper by calling <see cref="Notify"/>. Contains the methods to send the chat message or whisper.</param>
         private void ProcessCommand(MessageType message_type, Message message, TwitchBot bot)
         {           
-            UserType permisison = commands.GetPermission(message.command);
+            UserType permisison = message.command.permission;
 
             //make sure the user has the correct permission
             //NOTE: a user always has a UserType of "viewer" when sending a whisperm can cause issues if using mod only commands through whispers
@@ -225,7 +225,14 @@ namespace TwitchChatBot.Clients
                 return;
             }
 
-            switch (message.command.ToLower())
+            if(message_type.ToString() != message.command.type.ToString() && message.command.type != CommandType.Both)
+            {
+                SendWhisper(message, $"{message.command.key} can only be used through a {message.command.type.ToString().ToLower()} message");
+
+                return;
+            }
+
+            switch (message.command.key.ToLower())
             {
                 case "!addcommand":
                     commands.Add(variables, message, bot);
@@ -270,7 +277,7 @@ namespace TwitchChatBot.Clients
                     quotes.Add(commands, message, bot, broadcaster);
                     break;
                 default:
-                    SendResponse(message_type, message, commands.GetResponse(message.command, variables));
+                    SendResponse(message_type, message, commands.GetResponse(message.command.key, variables));
                     break;
             }
         }
@@ -314,7 +321,7 @@ namespace TwitchChatBot.Clients
                 Console.WriteLine(irc_message);
 
                 //only queue the message if it has a command in it
-                if (message.sender != null && message.sender.name.CheckString() && message.command.CheckString())
+                if (message.sender != null && message.sender.name.CheckString() && message.command.key.CheckString())
                 {
                     chat_queue.Enqueue(message);
                 }
@@ -356,7 +363,7 @@ namespace TwitchChatBot.Clients
                 Message message = new Message(MessageType.Whisper, whisper_message, commands);
 
                 //only queue the message if it has a command in it
-                if (message.sender != null && message.sender.name.CheckString() && message.command.CheckString())
+                if (message.sender != null && message.sender.name.CheckString() && message.command.key.CheckString())
                 {
                     whisper_queue.Enqueue(message);
                 }
