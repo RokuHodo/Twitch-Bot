@@ -3,208 +3,110 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 
-using TwitchChatBot.Enums;
-using TwitchChatBot.Enums.Debugger;
+using Newtonsoft.Json;
+
 using TwitchChatBot.Clients;
 using TwitchChatBot.Debugger;
+using TwitchChatBot.Enums.Chat;
+using TwitchChatBot.Enums.Debug;
 using TwitchChatBot.Extensions;
 using TwitchChatBot.Extensions.Files;
+using TwitchChatBot.Models.Bot;
 
 namespace TwitchChatBot.Chat
 {
     class Commands
     {
-        //where everything is loaded from
-        string file_path_normal = Environment.CurrentDirectory + "/Commands/Normal.txt";
-        string file_path_permanent = Environment.CurrentDirectory + "/Commands/Permanent.txt";
+        string file_path = Environment.CurrentDirectory + "/JSON/Chat/Commands.json";
 
-        //dictionaries to load the commands
-        Dictionary<string, Command> commands = new Dictionary<string, Command>();
-        Dictionary<string, string> preloaded_commands_normal = new Dictionary<string, string>();
-        Dictionary<string, string> preloaded_commands_permanent = new Dictionary<string, string>();
+        List<Command> commands_list = new List<Command>();
+
+        Dictionary<string, Command> commands_dictionary = new Dictionary<string, Command>();       
 
         public Commands(Variables variables)
         {
-            //preload and load the permanent commands (cannot be removed)
+            string commands_preloaded;
+
+            List<Command> commands_preloaded_list;
 
             Debug.BlankLine();
-            Debug.Header("Preloading permanent commands");
-            Debug.SubText("File path: " + file_path_permanent + Environment.NewLine);
 
-            preloaded_commands_permanent = PreLoad(File.ReadAllLines(file_path_permanent));
+            Debug.BlockBegin();
+            Debug.Header("Loading Commands");
+            Debug.PrintLine("File path:", file_path);
 
-            Debug.BlankLine();
-            Debug.Header("Loading permanent commands" + Environment.NewLine);
+            commands_preloaded = File.ReadAllText(file_path);
+            commands_preloaded_list = JsonConvert.DeserializeObject<List<Command>>(commands_preloaded);
 
-            foreach (KeyValuePair<string, string> pair in preloaded_commands_permanent)
+            if (commands_preloaded_list != null)
             {
-                Load(pair.Key, pair.Value, true, variables);
+                foreach (Command command in commands_preloaded_list)
+                {
+                    Load(command);
+                }
             }
 
-            //preload and load the normal commands (can be removed)
-            Debug.BlankLine();
-            Debug.Header("Preloading normal commands");
-            Debug.SubText("File path: " + file_path_normal + Environment.NewLine);
-
-            preloaded_commands_normal = PreLoad(File.ReadAllLines(file_path_normal));
-
-            Debug.BlankLine();
-            Debug.Header("Loading normal commands" + Environment.NewLine);
-
-            foreach (KeyValuePair<string, string> pair in preloaded_commands_normal)
-            {
-                Load(pair.Key, pair.Value, false, variables);
-            }
+            Debug.BlockEnd();
         }
 
         #region Load commands
 
         /// <summary>
-        /// Loops through an array of strings and returns the elements that contain more than one word into a <see cref="Dictionary{TKey, TValue}"/> on launch.
-        /// The first word is the "key" and anything after is the "value".
-        /// Commented lines and whitespace lines are ignored. 
+        /// Loads a <see cref="Command"/> into the <see cref="commands_list"/> and the <see cref="commands_dictionary"/> to be used in real time.
         /// </summary>
-        /// <param name="lines">Array of strings to be processed.</param>
-        /// <returns></returns>
-        private Dictionary<string, string> PreLoad(string[] lines)
+        /// <param name="command">The command to load.</param>
+        private void Load(Command command)
         {
-            string key, value;
-
-            Dictionary<string, string> preloaded_lines = new Dictionary<string, string>();
-
-            foreach (string line in lines)
-            {               
-                if (line.CheckString() && !line.StartsWith("//"))
-                {
-                    Debug.SubHeader(" Preloading command...");
-
-                    int parse_point = line.IndexOf(" ");
-
-                    if (parse_point != -1)
-                    {
-                        try
-                        {
-                            key = line.Substring(0, parse_point);
-                            value = line.Substring(parse_point + 1);
-
-                            preloaded_lines.Add(key, value);
-
-                            Debug.Success(DebugMethod.PreLoad, DebugObject.Command, line);
-                            Debug.SubText("Key: " + key);
-                            Debug.SubText("Value: " + value);
-
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.Failed(DebugMethod.PreLoad, DebugObject.Command, DebugError.Exception);
-                            Debug.SubText("Command: " + line);
-                            Debug.SubText("Exception: " + ex.Message);
-                        }
-                    }
-                    else
-                    {
-                        Debug.Failed(DebugMethod.PreLoad, DebugObject.Command, DebugError.Null);
-                        Debug.SubText("Command: "+ line);
-                    }
-                }
-            }
-
-            return preloaded_lines;
-        }
-
-        /// <summary>
-        /// Loads a command with a given response into the <see cref="commands"/> dictionary on launch.
-        /// </summary>
-        /// <param name="command">Command key to be added.</param>
-        /// <param name="response">What is returned when the command key is called.</param>
-        /// <param name="permanent">Determines if the command can be removed.</param>
-        /// <param name="variables">Parses the response for any valid variables and loads them into the <see cref="Variables.variables"/> dictionary.</param>
-        /// <param name="message">(Optional parameter) Required to send a chat message or whisper by calling <see cref="Notify"/>.Contains the message sender and room to send the chat message or whisper.</param>
-        /// <param name="bot">(Optional parameter) Required to send a chat message or whisper by calling <see cref="Notify"/>. Contains the methods to send the chat message or whisper.</param>
-        /// <returns></returns>
-        private bool Load(string command, string response, bool permanent, Variables variables, Message message = null, TwitchBot bot = null)
-        {
-            UserType permission;
-            CommandType command_type;
-
-            bool send_response = message != null && bot != null;
-
             Debug.BlankLine();
 
-            response = ParseResponse(response, variables, out command_type, out permission);
+            Debug.SubHeader("Loading command...");
 
-            //everyone is a viewer when they send a whisper, no point in specifiying a commmand with a specified permisison value
-            if(command_type == CommandType.Whisper && permission != UserType.viewer)
+            if (!CheckSyntax(command))
             {
-                Debug.Notify($"Changing permission from {permission} to viewer");
+                //REPLACE .GETNAME() WITH NAMEOF()
+                Debug.Error(DebugMethod.Load, DebugObject.Command, DebugError.Syntax);
+                Debug.PrintLine(nameof(command.key), command.key);
+                Debug.PrintLine(nameof(command.response), command.response);
 
-                permission = UserType.viewer;
+                return;
             }
 
-            Debug.SubHeader(" Loading command...");
-
-            //check to see if the syntax is correct
-            if (!CheckSyntax(command, response))
+            if (Exists(command.key))
             {
-                if (send_response)
-                {
-                    Notify.Failed(bot, DebugMethod.Add, DebugError.Syntax, message, command);
-                }
+                Debug.Error(DebugMethod.Load, DebugObject.Command, DebugError.ExistYes);
+                Debug.PrintLine(nameof(command.key), command.key);
 
-                Debug.Failed(DebugMethod.Load, DebugObject.Command, DebugError.Syntax);
-                Debug.SubText("Command: " + command);
-                Debug.SubText("Response: " + response);
-
-                return false;
+                return;
             }
 
-            //check to see if the command already exists
-            if (Exists(command))
+            if (!command.permission.CheckEnumRange<UserType>())
             {
-                if (send_response)
-                {
-                    Notify.Failed(bot, DebugMethod.Add, DebugError.ExistYes, message, command);
-                }
+                Debug.SyntaxError(DebugObject.Command, DebugObject.Setting, SyntaxError.EnumRange, Enum.GetNames(typeof(UserType)).Length);
+                Debug.PrintLine(nameof(command.permission), ((int)command.permission).ToString());
+                Debug.PrintLine(nameof(command.permission) + " set to " + UserType.viewer.ToString());
 
-                Debug.Failed(DebugMethod.Load, DebugObject.Command, DebugError.ExistYes);
-                Debug.SubText("Command: " + command);
-
-                return false;
-            }
+                command.permission = UserType.viewer;
+            }            
 
             try
             {
-                //assuming everything went right, add the command to the dictionary
-                commands.Add(command, new Command(permission, command, response, permanent, command_type));
+                command.last_used = DateTime.MinValue;
+                
+                commands_list.Add(command);
 
-                if (send_response)
-                {
-                    Notify.Success(bot, DebugMethod.Add, message, command);
-                }
+                commands_dictionary.Add(command.key, command);
 
-                Debug.Success(DebugMethod.Load, DebugObject.Command, command);
-                Debug.SubText("Command: " + command);
-                Debug.SubText("Response: " + response);
-                Debug.SubText("Permanent: " + permanent);
-                Debug.SubText("Permission: " + permission);
-                Debug.SubText("Command type: " + command_type);
+                Debug.Success(DebugMethod.Load, DebugObject.Command, command.key);
+                Debug.PrintObject(command);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                //shit hit the fan, something went wrong
-                if (send_response)
-                {
-                    Notify.Failed(bot, DebugMethod.Add, DebugError.Exception, message, command);
-                }
+                Debug.Error(DebugMethod.Load, DebugObject.Command, DebugError.Exception);
+                Debug.PrintLine(nameof(command.key), command.key);
+                Debug.PrintLine(nameof(exception), exception.Message);
 
-                Debug.Failed(DebugMethod.Load, DebugObject.Command, DebugError.Exception);
-                Debug.SubText("Command: " + command);
-                Debug.SubText("Exception: " + ex.Message);
-
-                return false;
+                return;
             }
-
-            return true;
         }
 
         #endregion
@@ -212,39 +114,88 @@ namespace TwitchChatBot.Chat
         #region Add, Edit, and Remove commands
 
         /// <summary>
-        /// Parses the body of a <see cref="Message"/> for a command and attempts to add the specified command.
+        /// Parses the body of a <see cref="Message"/> for a command and attempts to add the extracted command.
         /// Called from Twitch by using <code>!addcommand</code>.
         /// </summary>
-        /// <param name="variables">Parses the response for any valid variables and loads them into the <see cref="Variables.variables"/> dictionary.</param>
+        /// <param name="variables">Parses the response for any valid variables and loads them into the <see cref="Variables.variables_dictionary"/>.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        /// <param name="bot">Used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the methods to send the chat message or whisper.</param>
-        public void Add(Variables variables, Message message, TwitchBot bot)
+        public void Add(Variables variables, Message message)
         {
-            Debug.SubHeader(" Adding command...");
+            Debug.BlankLine();
+            Debug.SubHeader("Adding command...");           
 
-            message.body = variables.ParseLoopAdd(message.body);
+            Command command = MessageToCommand(DebugMethod.Add, message, variables);
 
-            KeyValuePair<string, string> command = ParseCommandKVP(message);
+            if (command == null)
+            {
+                return;
+            }
 
-            Add(command.Key, command.Value, variables, message, bot);
+            Add(command, variables, message);
         }
 
         /// <summary>
-        /// Adds a command with a given reponse into the <see cref="commands"/> dictionary in real time.
+        /// Adds a command with a given reponse into the <see cref="commands_dictionary"/> in real time.
         /// </summary>
-        /// <param name="command">Command key to be added.</param>
-        /// <param name="response">What is returned when the command key is called.</param>
-        /// <param name="variables">Parses the response for any valid variables and loads them into the <see cref="Variables.variables"/> dictionary.</param>
+        /// <param name="command">Command to be added.</param>
+        /// <param name="variables">Parses the response for any valid variables and loads them into the <see cref="Variables.variables_dictionary"/>.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        /// <param name="bot">Used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the methods to send the chat message or whisper.</param>
-        private void Add(string command, string response, Variables variables, Message message, TwitchBot bot)
-        {
-            string text = command + " " + response;
+        private void Add(Command command, Variables variables, Message message)
+        {           
+            if (!CheckSyntax(command))
+            {
+                Notify.Failed(DebugMethod.Add, DebugObject.Command, command.key, DebugError.Syntax, message);
 
-            //only add the command to the text file if it successfully adds the command
-            if (Load(command, response, false, variables, message, bot))
-            {                
-                text.AppendToFile(file_path_normal);
+                Debug.Error(DebugMethod.Add, DebugObject.Command, DebugError.Syntax);
+                Debug.PrintLine(nameof(command.key), command.key);
+                Debug.PrintLine(nameof(command.response), command.response);
+
+                return;
+            }
+
+            if (Exists(command.key))
+            {
+                Notify.Failed(DebugMethod.Add, DebugObject.Command, command.key, DebugError.ExistYes, message);
+
+                Debug.Error(DebugMethod.Add, DebugObject.Command, DebugError.ExistYes);
+                Debug.PrintLine(nameof(command.key), command.key);
+
+                return;
+            }
+
+            if (!command.permission.CheckEnumRange<UserType>())
+            {
+                int enum_size = Enum.GetNames(typeof(UserType)).Length;
+
+                Debug.SyntaxError(DebugObject.Command, DebugObject.Setting, SyntaxError.EnumRange, Enum.GetNames(typeof(UserType)).Length);
+                Debug.PrintLine(nameof(command.permission), ((int)command.permission).ToString());
+                Debug.PrintLine(nameof(command.permission) + "set to " + UserType.viewer.ToString());
+
+                command.permission = UserType.viewer;
+            }
+
+            try
+            {
+                commands_list.Add(command);
+
+                JsonConvert.SerializeObject(commands_list, Formatting.Indented).OverrideFile(file_path);
+           
+                commands_dictionary.Add(command.key, command);
+
+                Notify.Success(DebugMethod.Add, DebugObject.Command, command.key, message);
+
+                Debug.Success(DebugMethod.Add, DebugObject.Command, command.key);
+                Debug.PrintObject(command);
+            }
+            catch (Exception exception)
+            {
+                Notify.Failed(DebugMethod.Add, DebugObject.Command, command.key, DebugError.Exception, message);
+
+                Debug.Error(DebugMethod.Add, DebugObject.Command, DebugError.Exception);
+                Debug.PrintLine(nameof(command.key), command.key);
+                Debug.PrintLine(nameof(exception), exception.Message);
+
+                return;
             }
         }
 
@@ -252,107 +203,97 @@ namespace TwitchChatBot.Chat
         /// Parses the body of a <see cref="Message"/> for a command and attempts to edit the specified command.
         /// Called from Twitch by using <code>!editcommand.</code>
         /// </summary>
-        /// <param name="variables">Parses the response for any valid variables and loads them into the <see cref="Variables.variables"/> dictionary.</param>
+        /// <param name="variables">Parses the response for any valid variables and loads them into the <see cref="Variables.variables_dictionary"/>.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        /// <param name="bot">Used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the methods to send the chat message or whisper.</param>
-        public void Edit(Variables variables, Message message, TwitchBot bot)
+        public void Edit(Variables variables, Message message)
         {
-            Debug.SubHeader(" Editing command...");                       
+            Debug.BlankLine();
+            Debug.SubHeader("Editing command...");
 
-            KeyValuePair<string, string> command = ParseCommandKVP(message);
+            Command command = MessageToCommand(DebugMethod.Edit, message, variables);
 
-            Edit(command.Key, command.Value, variables, message, bot);
+            if (command == null)
+            {
+                return;
+            }
+
+            Edit(command, variables, message);
         }
 
         /// <summary>
-        /// Edits the response of a given command in the <see cref="commands"/> dictionary in real time.
+        /// Edits the response of a given command in the <see cref="commands_dictionary"/> in real time.
         /// </summary>
-        /// <param name="command">Command key to be edited.</param>
-        /// <param name="response">What is returned when the command key is called.</param>
-        /// <param name="variables">Parses the response for any valid variables and loads them into the <see cref="Variables.variables"/> dictionary.</param>
+        /// <param name="command_model">Command to be edited.</param>
+        /// <param name="variables">Parses the response for any valid variables and loads them into the <see cref="Variables.variables_dictionary"/>.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        /// <param name="bot">Used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the methods to send the chat message or whisper.</param>
-        private void Edit(string command, string response, Variables variables, Message message, TwitchBot bot)
+        private void Edit(Command command_model, Variables variables, Message message)
         {
-            //check to see if the syntax is correct
-            if (!CheckSyntax(command, response))
+            string preserialized_command = ParseCommandString(message).PreserializeAs<string>();        
+                        
+            if (!Exists(command_model.key))
             {
-                Notify.Failed(bot, DebugMethod.Edit, DebugError.Syntax, message, command);
+                Notify.Failed(DebugMethod.Edit, DebugObject.Command, command_model.key, DebugError.ExistNo, message);
 
-                Debug.Failed(DebugMethod.Edit, DebugObject.Command, DebugError.Syntax);
-                Debug.SubText("Command: " + command);
-                Debug.SubText("Response: " + response);                               
+                Debug.Error(DebugMethod.Edit, DebugObject.Command, DebugError.ExistNo);
+                Debug.PrintLine(nameof(command_model.key), command_model.key);
 
                 return;
             }
 
-            //make sure the user isn't trying to edit a command that doesn't exists
-            if (!Exists(command))
+            Command command = new Command
             {
-                Notify.Failed(bot, DebugMethod.Edit, DebugError.ExistNo, message, command);
+                key = command_model.key,
+                response = preserialized_command.Contains("\"response\":") ? command_model.response : commands_dictionary[command_model.key].response,
+                permanent = preserialized_command.Contains("\"permanent\":") ? command_model.permanent : commands_dictionary[command_model.key].permanent,
+                permission = preserialized_command.Contains("\"permission\":") ? command_model.permission : commands_dictionary[command_model.key].permission,
+                type = preserialized_command.Contains("\"type\":") ? command_model.type : commands_dictionary[command_model.key].type,
+                cooldown = preserialized_command.Contains("\"cooldown\":") ? command_model.cooldown : commands_dictionary[command_model.key].cooldown
+            };
 
-                Debug.Failed(DebugMethod.Edit, DebugObject.Command, DebugError.ExistNo);
-                Debug.SubText("Command: " + command);
+            if (!CheckSyntax(command))
+            {
+                Notify.Failed(DebugMethod.Edit, DebugObject.Command, command.key, DebugError.Syntax, message);
+
+                Debug.Error(DebugMethod.Edit, DebugObject.Command, DebugError.Syntax);
+                Debug.PrintLine(nameof(command.key), command.key);
+                Debug.PrintLine(nameof(command.response), command.response);                               
 
                 return;
+            }
+
+            if (!command.permission.CheckEnumRange<UserType>())
+            {
+                int enum_size = Enum.GetNames(typeof(UserType)).Length - 1;
+
+                Debug.SyntaxError(DebugObject.Command, DebugObject.Setting, SyntaxError.EnumRange, Enum.GetNames(typeof(UserType)).Length);
+                Debug.PrintLine(nameof(command.permission), ((int)command.permission).ToString());
+                Debug.PrintLine(nameof(command.permission) + "set to " + commands_dictionary[command_model.key].permission.ToString());
+
+                command.permission = commands_dictionary[command_model.key].permission;
             }
 
             try
             {
-                bool permanent = commands[command].permanent;
+                commands_list.Remove(commands_dictionary[command.key]);
+                commands_list.Add(command);
 
-                string file_path,
-                       to_append = command;
+                commands_dictionary[command.key] = command;
 
-                UserType permission;
-                CommandType command_type;
+                JsonConvert.SerializeObject(commands_list, Formatting.Indented).OverrideFile(file_path);
 
-                if (permanent)
-                {
-                    file_path = file_path_permanent;
-                }
-                else
-                {
-                    file_path = file_path_normal;
-                }
+                Notify.Success(DebugMethod.Edit, DebugObject.Command, command.key, message);
 
-                //only remove the lines where the command key is the first word, aka where the command is defined
-                command.RemoveFromFile(file_path, FileFilter.StartsWith);                               
-                
-                response = ParseResponse(response, variables, out command_type, out permission);
-
-                commands[command] = new Command(permission, command, response, permanent, command_type);
-
-                //only append the command type if it is not the default value
-                if(command_type != CommandType.Both)
-                {
-                    to_append += " [" + command_type.ToString() + "]";
-                }
-
-                //only append the permission if it is not the default value
-                if (permission != UserType.viewer)
-                {
-                    to_append += " [" + permission.ToString() + "]";
-                }
-
-                to_append += " " + response;
-
-                to_append.AppendToFile(file_path);
-
-                Notify.Success(bot, DebugMethod.Edit, message, command);
-
-                Debug.Success(DebugMethod.Edit, DebugObject.Command, command);
-                Debug.SubText("Command: " + command);
-                Debug.SubText("Response: " + response);
+                Debug.Success(DebugMethod.Edit, DebugObject.Command, command.key);
+                Debug.PrintLine(nameof(command.key), command.key);
+                Debug.PrintLine(nameof(command.response), command.response);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                //shit hit the fan, something went wrong 
-                Notify.Failed(bot, DebugMethod.Edit, DebugError.Exception, message, command);
+                Notify.Failed(DebugMethod.Edit, DebugObject.Command, command.key, DebugError.Exception, message);
 
-                Debug.Failed(DebugMethod.Edit, DebugObject.Command, DebugError.Exception);
-                Debug.SubText("Command: " + command);
-                Debug.SubText("Exception: " + ex.Message);
+                Debug.Error(DebugMethod.Edit, DebugObject.Command, DebugError.Exception);
+                Debug.PrintLine(nameof(command.key), command.key);
+                Debug.PrintLine(nameof(exception), exception.Message);
             }
         }
 
@@ -360,68 +301,70 @@ namespace TwitchChatBot.Chat
         /// Parses the body of a <see cref="Message"/> for a command and attempts to remove the specified command.
         /// Called from Twitch by using <code>!removecommand</code>.
         /// </summary>
+        /// <param name="variables">Required to create a command model in order for the command to be removed properly.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        /// <param name="bot">Used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the methods to send the chat message or whisper.</param>
-        public void Remove(Message message, TwitchBot bot)
+        public void Remove(Variables variables, Message message)
         {
-            Debug.SubHeader(" Removing command...");
+            Debug.BlankLine();
+            Debug.SubHeader("Removing command...");
 
-            string command = ParseCommandString(message);
+            Command command = MessageToCommand(DebugMethod.Remove, message, variables);
 
-            Remove(command, message, bot);
+            if (command == null)
+            {
+                return;
+            }
+
+            Remove(command, variables, message);
         }
 
         /// <summary>
-        /// Removed the specified command from the <see cref="commands"/> dictionary in real time.
+        /// Removed the specified command from the <see cref="commands_dictionary"/> dictionary in real time.
         /// </summary>
-        /// <param name="command">Command key to be removed.</param>
+        /// <param name="command">Command to be removed.</param>
+        /// <param name="variables">Required to create a command model in order for the command to be removed properly.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        /// <param name="bot">Used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the methods to send the chat message or whisper.</param>
-        private void Remove(string command, Message message, TwitchBot bot)
+        private void Remove(Command command, Variables variables, Message message)
         {
-            //make sure the user isn't trying to remove a command that doesn't exist
-            if (!Exists(command))
+            if (!Exists(command.key))
             {
-                Notify.Failed(bot, DebugMethod.Remove, DebugError.ExistNo, message, command);
+                Notify.Failed(DebugMethod.Remove, DebugObject.Command, command.key, DebugError.ExistNo, message);
 
-                Debug.Failed(DebugMethod.Remove, DebugObject.Command, DebugError.ExistNo);
-                Debug.SubText("Command: " + command);               
+                Debug.Error(DebugMethod.Remove, DebugObject.Command, DebugError.ExistNo);
+                Debug.PrintLine(nameof(command.key), command.key);               
 
                 return;
             }
 
-            //check to see the command can actually be removed
-            if (isPermanent(command))
+            if (isPermanent(command.key))
             {
-                Notify.Failed(bot, DebugMethod.Remove, DebugError.Permanent, message, command);
+                Notify.Failed(DebugMethod.Remove, DebugObject.Command, command.key, DebugError.Permanent, message);
 
-                Debug.Failed(DebugMethod.Remove, DebugObject.Command, DebugError.Permanent);
-                Debug.SubText("Command: " + command);
+                Debug.Error(DebugMethod.Remove, DebugObject.Command, DebugError.Permanent);
+                Debug.PrintLine(nameof(command.key), command.key);
 
                 return;
             }
 
             try
             {
-                //remove any line that STARTS with the command
-                //just in case there is a "!help" type command that lists other command keys
-                command.RemoveFromFile(file_path_normal, FileFilter.StartsWith);
+                commands_list.Remove(commands_dictionary[command.key]);
+                commands_dictionary.Remove(command.key);                
 
-                commands.Remove(command);
+                JsonConvert.SerializeObject(commands_list, Formatting.Indented).OverrideFile(file_path);
 
-                Notify.Success(bot, DebugMethod.Remove, message, command);
+                Notify.Success(DebugMethod.Remove, DebugObject.Command, command.key, message);
 
-                Debug.Success(DebugMethod.Remove, DebugObject.Command, command);
-                Debug.SubText("Command: " + command);
+                Debug.Success(DebugMethod.Remove, DebugObject.Command, command.key);
+                Debug.PrintLine(nameof(command.key), command.key);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                //something happened, abort! abort!
-                Notify.Failed(bot, DebugMethod.Remove, DebugError.Exception, message, command);
+                Notify.Failed(DebugMethod.Remove, DebugObject.Command, command.key, DebugError.Exception, message);
 
-                Debug.Failed(DebugMethod.Remove, DebugObject.Command, DebugError.Exception);
-                Debug.SubText("Command: " + command);
-                Debug.SubText("Exception: " + ex.Message);
+                Debug.Error(DebugMethod.Remove, DebugObject.Command, DebugError.Exception);
+                Debug.PrintLine(nameof(command.key), command.key);
+                Debug.PrintLine(nameof(exception), exception.Message);
             }
 
             return;
@@ -436,19 +379,28 @@ namespace TwitchChatBot.Chat
         /// </summary>
         /// <param name="body">The string to be parsed and checked for a command.</param>
         /// <returns></returns>
-        public Command ExtractCommand(string body)
+        public Command ExtractCommand(string message_body)
         {
-            string[] words = body.StringToArray<string>(' ');
+            string[] words = message_body.StringToArray<string>(' ');
 
             foreach (string word in words)
             {
-                if (commands.ContainsKey(word))
+                if (commands_dictionary.ContainsKey(word))
                 {
-                    return commands[word];
+                    return commands_dictionary[word];
                 }
             }
 
-            return new Command(UserType.viewer, string.Empty, string.Empty, false, CommandType.Both);
+            return new Command
+            {
+                key = string.Empty,
+                response = string.Empty,
+                permanent = false,
+                permission = UserType.viewer,
+                type = CommandType.Both,
+                last_used = DateTime.MinValue,
+
+            };
         }
 
         /// <summary>
@@ -460,18 +412,18 @@ namespace TwitchChatBot.Chat
         /// <returns></returns>
         public string GetResponse(string command, Variables variables)
         {
-            if (commands.ContainsKey(command))
+            if (commands_dictionary.ContainsKey(command))
             {
                 string response;
 
-                response = commands[command].response;
+                response = commands_dictionary[command].response;
 
                 //search to see if the command response has a variable and replace it with its value
-                foreach (KeyValuePair<string, string> pair in variables.GetVariables())
+                foreach (KeyValuePair<string, Variable> pair in variables.GetVariables())
                 {
                     if (response.Contains(pair.Key))
                     {
-                        response = response.Replace(pair.Key, pair.Value);
+                        response = response.Replace(pair.Key, pair.Value.value);
                     }
                 }
 
@@ -481,24 +433,11 @@ namespace TwitchChatBot.Chat
             return string.Empty;
         }       
 
-        /// <summary>
-        /// Checks to see if the permission matches the proper syntax.
-        /// </summary>
-        /// <param name="permission">Permission value to check.</param>
-        /// <returns></returns>
-        private bool CheckSeparateSyntax(string permission)
-        {
-            if(permission.StartsWith("[") && permission.EndsWith("]"))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
         #endregion
 
-        #region Bollean checks
+        #region Boolean checks
+
+        
 
         /// <summary>
         /// Checks to see if a command already exists.
@@ -507,7 +446,7 @@ namespace TwitchChatBot.Chat
         /// <returns></returns>
         public bool Exists(string command)
         {
-            return commands.ContainsKey(command);
+            return commands_dictionary.ContainsKey(command);
         }
 
         /// <summary>
@@ -517,7 +456,7 @@ namespace TwitchChatBot.Chat
         /// <returns></returns>
         public bool isPermanent(string command)
         {
-            return commands[command].permanent;
+            return commands_dictionary[command].permanent;
         }
 
         /// <summary>
@@ -526,42 +465,69 @@ namespace TwitchChatBot.Chat
         /// <param name="command">Command key to be checked.</param>
         /// <param name="response">Response to be checked.</param>
         /// <returns></returns>
-        private bool CheckSyntax(string command, string response)
+        private bool CheckSyntax(Command command)
         {
-            if (!command.CheckString())
+            if (!command.key.CheckString())
             {
-                Debug.Failed(DebugMethod.SyntaxCheck, DebugObject.Command, DebugObject.Command, SyntaxError.Null);
-                Debug.SubText("Command: null");
+                Debug.SyntaxError(DebugObject.Command, DebugObject.Command, SyntaxError.Null);
+                Debug.PrintLine(nameof(command.key), "null");
 
                 return false;
             }
 
-            if (!response.CheckString())
+            if (!command.response.CheckString())
             {
-                Debug.Failed(DebugMethod.SyntaxCheck, DebugObject.Command, DebugObject.Response, SyntaxError.Null);
-                Debug.SubText("Command: " + command);
-                Debug.SubText("Response: null");
+                Debug.SyntaxError(DebugObject.Command, DebugObject.Response, SyntaxError.Null);
+                Debug.PrintLine(nameof(command.key), command.key);
+                Debug.PrintLine(nameof(command.response), "null");
 
                 return false;
             }
 
-            if (!command.StartsWith("!"))
+            if (!command.key.StartsWith("!"))
             {
-                Debug.Failed(DebugMethod.SyntaxCheck, DebugObject.Command, DebugObject.Command, SyntaxError.EexclamationPoint);
-                Debug.SubText("Command: " + command);
+                Debug.SyntaxError(DebugObject.Command, DebugObject.Command, SyntaxError.EexclamationPoint);
+                Debug.PrintLine(nameof(command.key), command.key);
 
                 return false;
             }
+
 
             //command needs at least one character after "!"
-            if(command.Length < 2)
+            if (command.key.Length < 2)
             {
-                Debug.Failed(DebugMethod.SyntaxCheck, DebugObject.Command, DebugObject.Command, SyntaxError.Length);
-                Debug.SubText("Command length: " + command.Length);
-                Debug.SubText("Minimum length: 2");
+                Debug.SyntaxError(DebugObject.Command, DebugObject.Command, SyntaxError.Length);
+                Debug.PrintLine(nameof(command.key), command.key);
+                Debug.PrintLine("length", command.key.Length.ToString());
+                Debug.PrintLine("minimum length:", "2");
 
                 return false;
             }
+
+            //check for illegal characters
+            if (command.key.Contains("{") || command.key.Contains("}"))
+            {
+                Debug.SyntaxError(DebugObject.Command, DebugObject.Command, SyntaxError.BracketsNo);
+                Debug.PrintLine(nameof(command.key), command.key);
+
+                return false;
+            }
+
+            if (command.key.Contains("[") || command.key.Contains("]"))
+            {
+                Debug.SyntaxError(DebugObject.Command, DebugObject.Command, SyntaxError.SquareBracketsNo);
+                Debug.PrintLine(nameof(command.key), command.key);
+
+                return false;
+            }
+
+            if (command.key.Contains("(") || command.key.Contains(")"))
+            {
+                Debug.SyntaxError(DebugObject.Command, DebugObject.Command, SyntaxError.ParenthesisNo);
+                Debug.PrintLine(nameof(command.key), command.key);
+
+                return false;
+            }            
 
             return true;
         }
@@ -575,16 +541,31 @@ namespace TwitchChatBot.Chat
         //  ----------------------------------------------------------------  \\
 
         /// <summary>
+        /// Resets the last time a command was used to the current time.
+        /// </summary>
+        /// <param name="command">The command to reset the time last used for.</param>
+        public void ResetLastUsed(Command command)
+        {
+            if (!Exists(command.key))
+            {
+                Debug.Error(DebugMethod.Edit, DebugObject.Command, DebugError.ExistNo);
+                Debug.PrintLine("Failed to set last time used");
+            }
+
+            commands_dictionary[command.key].last_used = DateTime.Now;
+        }
+
+        /// <summary>
         /// Gets the uptime of the specified broadcaster by assembling the uptime <see cref="string"/> fragments.
         /// Called from Twitch by using <code>!uptime</code>.
         /// </summary>
         /// <param name="broadcaster">Contains the method to get the uptime in <see cref="TimeSpan"/> format. Also contains the broadcaster information.</param>
         /// <returns></returns>
-        public string GetUpTime(TwitchUserAuthenticated broadcaster)
+        public string GetUpTime(TwitchClientOAuth broadcaster)
         {
             if (!broadcaster.isLive(broadcaster.name))
             {
-                return $"{broadcaster.display_name} is currently offline";
+                return broadcaster.display_name + " is currently offline";
             }
 
             string total_time, prefix;
@@ -657,7 +638,7 @@ namespace TwitchChatBot.Chat
         /// <returns></returns>
         private string GetTimeString(int? value, string tier)
         {
-            string to_return = $"{value.ToString()} {tier}";
+            string to_return = value.ToString() + " " + tier;
 
             if (value == 0 || value == null)
             {
@@ -681,43 +662,47 @@ namespace TwitchChatBot.Chat
         /// <param name="settings">Stream setting to update.</param>
         /// <param name="message">The message to be parsed for the new stream setting.</param>
         /// <param name="broadcaster">Contains the method to update the stream setting. Also contains the broadcaster information.</param>
-        public void UpdateStream(StreamSetting settings, Message message, TwitchUserAuthenticated broadcaster)
+        public void UpdateStream(StreamSetting settings, Message message, TwitchClientOAuth broadcaster)
         {
             string setting = settings.ToString(),
                    value = ParseCommandString(message);
 
-            string _value = "";
+            DebugObject debug_setting;
+
+            Enum.TryParse(setting, out debug_setting);
 
             if (!value.CheckString())
             {
-                Debug.Failed($"Failed to set {setting}: title cannot be null or empty");
+                Debug.Error(DebugMethod.Update, debug_setting, DebugError.Null);
+                Debug.PrintLine("stream setting", setting.ToString());
 
                 return;
             }
 
             if(settings == StreamSetting.Delay)
             {
-                //the value wasn't a number
                 if (!value.CanCovertTo(typeof(double)))
                 {
-                    Debug.Failed($"Could not convert {value} to {typeof(double).FullName}");
+                    Debug.Error(DebugMethod.Update, debug_setting, DebugError.Convert);
+                    Debug.PrintLine(nameof(value), value);
+                    Debug.PrintLine(nameof(value) + " type", value.GetType().Name.ToLower());
+                    Debug.PrintLine("supported type", typeof(double).Name);
 
                     return;
                 }
 
-                //the channel isn't partnered 
                 if (!broadcaster.isPartner(broadcaster.name))
                 {
-                    Debug.Failed($"Failed to set delay: you need to be partnered to have this option");
+                    Debug.Error("Failed to set delay: you need to be partnered to have this option");
 
                     return;
                 }
             }
 
-            //there's no channel specified
             if (!broadcaster.display_name.CheckString())
             {
-                Debug.Failed($"Failed to set {setting}: no channel name specified");
+                Debug.Error(DebugMethod.Update, debug_setting, DebugError.Null);
+                Debug.PrintLine(nameof(broadcaster), "null");
 
                 return;
             }
@@ -727,26 +712,26 @@ namespace TwitchChatBot.Chat
                 case StreamSetting.Delay:
                     broadcaster.SetDelay(broadcaster.display_name.ToLower(), value);
 
-                    _value = broadcaster.GetChannel(broadcaster.display_name).delay.ToString();
+                    value = broadcaster.GetChannel(broadcaster.display_name).delay.ToString();
                     break;
                 case StreamSetting.Game:
                     broadcaster.SetGame(broadcaster.display_name.ToLower(), value);
 
-                    _value = broadcaster.GetChannel(broadcaster.display_name).game;
+                    value = broadcaster.GetChannel(broadcaster.display_name).game;
                     break;
                 case StreamSetting.Title:
                     broadcaster.SetTitle(broadcaster.display_name.ToLower(), value);
 
-                    _value = broadcaster.GetChannel(broadcaster.display_name).status;
+                    value = broadcaster.GetChannel(broadcaster.display_name).status;
                     break;
                 default:
                     break;
             }
 
             //this works but it takes time for the server to update it so it appears to not have been changed when offline
-            Debug.Success($"Successfully updated {setting}!");
-            Debug.SubText(setting + ": " + _value);
-            Debug.SubText("Channel: " + broadcaster.display_name);
+            Debug.Success(DebugMethod.Update, debug_setting, setting);
+            Debug.PrintLine(nameof(broadcaster), broadcaster.display_name);
+            Debug.PrintLine(nameof(value), value);
         }
 
         /// <summary>
@@ -758,7 +743,7 @@ namespace TwitchChatBot.Chat
         {
             try
             {
-                string song = File.ReadAllText(commands["!music"].response);
+                string song = File.ReadAllText(commands_dictionary["!music"].response);
 
                 if (song.CheckString())
                 {
@@ -769,10 +754,10 @@ namespace TwitchChatBot.Chat
                     return "";
                 }
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Debug.Failed("Failed to get current song: unkown error");
-                Debug.SubText("Exception: " + ex.Message);
+                Debug.Error("Failed to get current song: unkown error");
+                Debug.PrintLine(nameof(exception), exception.Message);
 
                 return "Failed to retrieve song data";
             }
@@ -792,7 +777,7 @@ namespace TwitchChatBot.Chat
 
             if (channel.ToLower() == user.ToLower())
             {
-                return $"You cannot follow yourself {user} FailFish";
+                return "You cannot follow yourself " + user + " FailFish";
             }
 
             if (web_text.Contains("Not following"))
@@ -806,12 +791,12 @@ namespace TwitchChatBot.Chat
 
                 how_long = $"{user} has been following {channel} since {date_followed.ToShortDateString()} PogChamp";
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                how_long = $"Could not retrieve follow time at this time {user} BibleThump";
+                how_long = "Could not retrieve follow time at this time " + user + " BibleThump";
 
-                Debug.Failed($"Failed to get how long {user} has been following {channel}");
-                Debug.SubText("Exception: " + ex.Message);
+                Debug.Error("Failed to get how long " + user + " has been following " + channel);
+                Debug.PrintLine(nameof(exception), exception.Message);
             }
 
             return how_long;
@@ -831,85 +816,52 @@ namespace TwitchChatBot.Chat
 
         #endregion
 
-        #region String parsing
+        #region String parsing      
 
         /// <summary>
-        /// Searches the response of a <see cref="Command"/> for the command type or the permission level.
+        /// Converts a message recieved from Twitch into a <see cref="Command"/> and returns the command.
+        /// Returns null if the message could not be converted to a <see cref="Command"/>.
         /// </summary>
-        /// <typeparam name="TEnum">A generic <see cref="Enum"/> that can either be <see cref="CommandType"/> or <see cref="UserType"/>. Specifies which command parameter to search for.</typeparam>
-        /// <param name="response">What is returned when the command key is called.</param>
-        /// <param name="default_value">The default value of the <see cref="CommandType"/> or <see cref="UserType"/> to return if no value is specified in the response</param>
+        /// <param name="debug_method">The type of operation being performed.</param>
+        /// <param name="variables">Parses the response for any valid variables and loads them into the <see cref="Variables.variables_dictionary"/> dictionary.</param>
+        /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         /// <returns></returns>
-        private KeyValuePair<TEnum, string> SeparateResponse<TEnum>(string response, TEnum default_value) where TEnum : struct 
+        private Command MessageToCommand(DebugMethod debug_method, Message message, Variables variables)
         {
-            string separate_tag, 
-                   value = "";
+            string command_string;
 
-            string[] response_array = response.StringToArray<string>(' ');
+            Variable[] variable_array;
 
-            TEnum enum_value = default_value;
+            command_string = ParseCommandString(message);
+            command_string = variables.ExtractVariables(command_string, message, out variable_array);
+            command_string = command_string.PreserializeAs<Command>();     
 
-            if(enum_value.GetType() == typeof(UserType))
+            try
             {
-                separate_tag = "Permission";
-            }
-            else
-            {
-                separate_tag = "Command type";
-            }
+                Command command = JsonConvert.DeserializeObject<Command>(command_string);
 
-            Debug.SubHeader($" Separating response for {separate_tag.ToLower()} ...");
+                Debug.Success(DebugMethod.Serialize, DebugObject.Command, command.key);
+                Debug.PrintObject(command);
 
-            //the response is empty, return an empty string  
-            if (!response.CheckString())
-            {
-                Debug.Failed(DebugMethod.Separate, DebugObject.Command, DebugError.Null);
-                Debug.SubText("Response: null");
-
-                return new KeyValuePair<TEnum, string>(enum_value, value);
-            }
-
-            //nothing after !addcommand
-            if (!response_array.CheckArray())
-            {
-                Debug.Failed(DebugMethod.Separate, DebugObject.Command, DebugError.Null);
-
-                return new KeyValuePair<TEnum, string>(enum_value, value);
-            }
-
-            //check to see if the first word is a valid permission level and has the right syntax
-            if (response_array[0].Length > 1 && Enum.TryParse(response.Substring(1, response_array[0].Length - 2), out enum_value) && CheckSeparateSyntax(response_array[0]))
-            {
-                if (response_array[0].Length < response.Length)
+                foreach (Variable variable in variable_array)
                 {
-                    //valid permisison and there was a response after it
-                    value = response.Substring(response_array[0].Length + 1);
+                    variables.Add(variable, message);
+                }
 
-                    Debug.Success(DebugMethod.Separate, DebugObject.Command, $"{response} ({ separate_tag.ToLower()} specified)");
-                    Debug.SubText(separate_tag + ": " + enum_value);
-                    Debug.SubText("Response: " + value);
-                }
-                else
-                {
-                    //there was nothing after the permission
-                    Debug.Failed(DebugMethod.Separate, DebugObject.Command, DebugError.Null);
-                    Debug.SubText(separate_tag + ": " + enum_value);
-                    Debug.SubText("Response: null");
-                }
+                return command; 
             }
-            else
+            catch (Exception exception)
             {
-                //the first word wasn't a permision value, set the response to the entire string
-                value = response;
+                Notify.Failed(debug_method, DebugObject.Command, command_string, DebugError.Exception, message);
 
-                Debug.Success(DebugMethod.Separate, DebugObject.Command, $"{response} (no { separate_tag.ToLower()} specified)");
-                Debug.SubText(separate_tag + ": " + enum_value);
-                Debug.SubText("Response: " + value);
+                Debug.Error(DebugMethod.Serialize, DebugObject.Command, DebugError.Exception);
+                Debug.Error(debug_method, DebugObject.Command, DebugError.Null);
+                Debug.PrintLine(nameof(command_string), command_string);
+                Debug.PrintLine(nameof(exception), exception.Message);
+
+                return null;
             }
-
-            return new KeyValuePair<TEnum, string>(enum_value, value);
         }
-
 
         /// <summary>
         /// Parses the body of a <see cref="Message"/> after the command and returns a <see cref="KeyValuePair{TKey, TValue}"/>.
@@ -934,14 +886,14 @@ namespace TwitchChatBot.Chat
                 value = message.body.Substring(parse_end + 1);
 
                 Debug.Success(DebugMethod.ParseKVP, DebugObject.Command, message.body);
-                Debug.SubText("Key: " + key);
-                Debug.SubText("Value: " + value);
+                Debug.PrintLine(nameof(key), key);
+                Debug.PrintLine(nameof(value), value);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Debug.Failed(DebugMethod.ParseKVP, DebugObject.Command, DebugError.Exception);
-                Debug.SubText("Line: " + message.body);
-                Debug.SubText("Exception: " + ex.Message);
+                Debug.Error(DebugMethod.ParseKVP, DebugObject.Command, DebugError.Exception);
+                Debug.PrintLine(nameof(message.body), message.body);
+                Debug.PrintLine(nameof(exception), exception.Message);
             }
 
             return new KeyValuePair<string, string>(key, value);
@@ -963,32 +915,16 @@ namespace TwitchChatBot.Chat
                 result = message.body.Substring(parse_start + 1);
 
                 Debug.Success(DebugMethod.ParseString, DebugObject.Command, message.body);
-                Debug.SubText("String: " + result);
+                Debug.PrintLine(nameof(result), result);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Debug.Failed(DebugMethod.ParseString, DebugObject.Command, DebugError.Exception);
-                Debug.SubText("Line: " + message.body);
-                Debug.SubText("Exception: " + ex.Message);
+                Debug.Error(DebugMethod.ParseString, DebugObject.Command, DebugError.Exception);
+                Debug.PrintLine(nameof(message.body), message.body);
+                Debug.PrintLine(nameof(exception), exception.Message);
             }
 
             return result;
-        }
-
-        private string ParseResponse(string response, Variables variables, out CommandType command_type, out UserType permission)
-        {
-            //check where the command can be used
-            KeyValuePair<CommandType, string> command_type_response = SeparateResponse(response, CommandType.Both);
-            command_type = command_type_response.Key;
-            response = command_type_response.Value;
-
-            //get who can use the command
-            KeyValuePair<UserType, string> permisison_response = SeparateResponse(response, UserType.viewer);
-            permission = permisison_response.Key;
-            response = permisison_response.Value;
-
-            //now the command type and permisison have been parsed, search for any variables in the actual response
-            return variables.ParseLoopAdd(response);
         }
 
         #endregion

@@ -1,0 +1,14 @@
+[
+  {
+    "key": "[level]",
+    "value": "72"
+  },
+  {
+    "key": "[test_variable]",
+    "value": "random string value"
+  },
+  {
+    "key": "[a_variable]",
+    "value": "a variable is inserted"
+  }
+]

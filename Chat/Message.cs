@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 
-using TwitchChatBot.Enums;
+using TwitchChatBot.Enums.Chat;
 using TwitchChatBot.Extensions;
+using TwitchChatBot.Models.Bot;
 
 namespace TwitchChatBot.Chat
 {
@@ -11,13 +11,20 @@ namespace TwitchChatBot.Chat
         string prefix;
 
         public string body, room, key;
+
+        public MessageType message_type;
                 
         public Sender sender;
         public Command command;
 
-        public Message(MessageType message_type, string irc_message, Commands commands)
+        public Message()
+        {
+
+        }
+
+        public Message(MessageType message_type, string irc_message, Commands commands, string broadcaster_name)
         {          
-            ParseMessage(message_type, irc_message, commands);
+            ParseMessage(message_type, irc_message, commands, broadcaster_name);
         }
 
         /// <summary>
@@ -26,7 +33,7 @@ namespace TwitchChatBot.Chat
         /// <param name="message_type">Specifies if the chat message should be processed as a whisper or a chat message.</param>
         /// <param name="irc_message">The message sent from the IRC.</param>
         /// <param name="commands">Parses and checks to see if a command was in the IRC message.</param>
-        private void ParseMessage(MessageType message_type, string irc_message, Commands commands)
+        private void ParseMessage(MessageType _message_type, string irc_message, Commands commands, string broadcaster_name)
         {
             if (irc_message.Contains("PRIVMSG") || irc_message.Contains("WHISPER"))
             {
@@ -35,11 +42,20 @@ namespace TwitchChatBot.Chat
 
                 if (key == "PRIVMSG" || key == "WHISPER")
                 {
+                    if(key == "PRIVMSG")
+                    {
+                        message_type = MessageType.Chat;
+                    }
+                    else
+                    {
+                        message_type = MessageType.Whisper;
+                    }
+
                     body = GetBody(irc_message, prefix);
-                    room = GetRoom(message_type, prefix);
+                    room = GetRoom(_message_type, prefix);
                     command = commands.ExtractCommand(body);
 
-                    sender = new Sender(irc_message);
+                    sender = new Sender(irc_message, broadcaster_name);
 
                     Console.ForegroundColor = ConsoleColor.Magenta;
                     Console.Write(Environment.NewLine + $"{sender.name} ({sender.user_type.ToString()}): ");
@@ -51,7 +67,7 @@ namespace TwitchChatBot.Chat
                     Console.WriteLine("\tKey: \"{0}\"", key);
 
                     Console.WriteLine("\tRoom: \"{0}\"", room);
-                    Console.WriteLine("\tCommand: \"{0}\"" + Environment.NewLine, command);                   
+                    Console.WriteLine("\tCommand: \"{0}\"" + Environment.NewLine, command.key);                   
                 }
             }
         }

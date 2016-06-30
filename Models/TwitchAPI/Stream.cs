@@ -1,28 +1,35 @@
 ﻿using System;
-using RestSharp.Deserializers;
+using Newtonsoft.Json;
 
-namespace TwitchChatBot.TwitchModels
+namespace TwitchChatBot.Models.TwitchAPI
 {
     class Stream
     {
-        [DeserializeAs(Name = "game")]
+        [JsonProperty("game")]
         public string game { get; set; }
-        [DeserializeAs(Name = "viewers")]
+
+        [JsonProperty("viewers")]
         public int viewers { get; set; }
-        [DeserializeAs(Name = "average_fps")]
+
+        [JsonProperty("average_fps")]
         public double average_fps { get; set; }
-        [DeserializeAs(Name = "delay")]
+
+        [JsonProperty("delay")]
         public double delay { get; set; }
-        [DeserializeAs(Name = "video_height")]
+
+        [JsonProperty("video_height")]
         public int video_height { get; set; }
-        [DeserializeAs(Name = "is_playlist")]
+
+        [JsonProperty("is_playlist")]
         public bool is_playlist { get; set; }
-        [DeserializeAs(Name = "created_at")]
+
+        [JsonProperty("created_at")]
         public DateTime created_at { get; set; }
-        [DeserializeAs(Name = "_id")]
+
+        [JsonProperty("_id")]
         public long _id { get; set; }
 
-        [DeserializeAs(Name = "channel")]
+        [JsonProperty("channel")]
         public Channel channel { get; set; }
     }
 }

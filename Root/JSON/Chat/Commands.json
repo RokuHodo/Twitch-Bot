@@ -1,0 +1,227 @@
+[
+  {
+    "key": "!addvariable",
+    "response": "!addvariable",
+    "permanent": true,
+    "permission": 1,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!removevariable",
+    "response": "!removevariable",
+    "permanent": true,
+    "permission": 1,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!editvariable",
+    "response": "!editvariable",
+    "permanent": true,
+    "permission": 1,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!addcommand",
+    "response": "!addcommand",
+    "permanent": true,
+    "permission": 1,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "2016-06-14T18:44:44.8730799-04:00"
+  },
+  {
+    "key": "!editcommand",
+    "response": "!editcommand",
+    "permanent": true,
+    "permission": 1,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!removecommand",
+    "response": "!removecommand",
+    "permanent": true,
+    "permission": 1,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!settitle",
+    "response": "!settitle",
+    "permanent": true,
+    "permission": 1,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!setgame",
+    "response": "!setgame",
+    "permanent": true,
+    "permission": 1,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!setdelay",
+    "response": "!setdelay",
+    "permanent": true,
+    "permission": 1,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!howlong",
+    "response": "!howlong",
+    "permanent": true,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!addquote",
+    "response": "!addquote",
+    "permanent": true,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!quote",
+    "response": "!quote",
+    "permanent": true,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!source",
+    "response": "Bot source code: https://github.com/RokuHodo/Twitch-Bot.git",
+    "permanent": true,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!uptime",
+    "response": "!uptime",
+    "permanent": true,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!kadgar",
+    "response": "http://kadgar.net/live/dumj01/sixdegreesofgaming",
+    "permanent": true,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!steam",
+    "response": "Steam: http://steamcommunity.com/id/RokuHodo",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!pc",
+    "response": "PC: http://pcpartpicker.com/p/DCnqD3",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!youtube",
+    "response": "YouTube: https://www.youtube.com/user/SixDegreesOfGaming",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!twitter",
+    "response": "Twitter: https://twitter.com/RokuHodo",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!music",
+    "response": "C:/Users/PJAnd/Documents/Twitch/Now Playing.txt",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!level",
+    "response": "Level: [level]",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!discord",
+    "response": "Discord: https://discord.gg/0tErd6oiv6E54KV3",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 10.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!testcommand",
+    "response": "This is a test where [a_variable] into a command response",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!setfilter",
+    "response": "setfilter",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!testtest",
+    "response": "reaponse",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "0001-01-01T00:00:00"
+  }
+]

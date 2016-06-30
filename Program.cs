@@ -7,14 +7,12 @@ using TwitchChatBot.Clients;
 using TwitchChatBot.Debugger;
 using TwitchChatBot.Extensions;
 
+using TwitchChatBot.Chat;
+
 /*
     TODO(Six):
-        - Add in the check to see which cluster to connect to
-        - Check to see if an edited command response containes any new variables
+
         - Add in the ability to whisper through the command line
-        - Debug commands could be more descriptive, but they get the job done for now
-        - Make it so that variable values can contain other variables? This seems like it would be a very specific use case.
-          I'm not sure it's worth the time to implement 
 */
 
 namespace TwitchChatBot
@@ -31,8 +29,8 @@ namespace TwitchChatBot
 
             if(login == null || login.Length != 3)
             {
-                Debug.Failed($"Failed to load the login information: {login.Length} login credentials found, 3 credentials are required");
-                Debug.SubText("Bot token, broadcaster token, and a client id");
+                Debug.Error($"Failed to load the login information: {login.Length} login credentials found, 3 credentials are required");
+                Debug.PrintLine("Bot token, broadcaster token, and a client id");
 
                 Console.WriteLine(Environment.NewLine + "Press any key to exit...");
                 Console.ReadKey();
@@ -40,42 +38,30 @@ namespace TwitchChatBot
                 Environment.Exit(0);
             }
 
-            TwitchUserAuthenticated broadcaster = new TwitchUserAuthenticated(login[2], login[1]);
+            TwitchClientOAuth broadcaster = new TwitchClientOAuth(login[2], login[1]);
 
             if (!broadcaster.display_name.CheckString())
             {
-                Debug.Failed("Failed to find the broadcaster");
+                Debug.Error("Failed to find the broadcaster");
+                Debug.BlankLine();
 
-                Console.WriteLine(Environment.NewLine + "Press any key to exit...");
+                Debug.PrintLine("Press any key to exit...");
                 Console.ReadKey();
 
                 Environment.Exit(0);
             }   
                         
-            TwitchBot bot = new TwitchBot(login[0], login[1], broadcaster);
+            Bot bot = new Bot(login[0], login[1], broadcaster);
             bot.JoinChannel(broadcaster.GetAuthenticatedUser().name);
 
             while (true)
             {
-                if (!bot.ChatConnected())
-                {
-                    Debug.Notify("Attempting to recconect to chat...");
-
-                    bot.ConnectChat();
-                }
-
-                if (!bot.WhisperConnected())
-                {                    
-                    Debug.Notify("Attempting to recconect to the whisper server...");
-                    
-                    bot.ConnectWhisper();
-                }
-
-                bot.TryProcessCommand(bot);
+                bot.TryProcessCommand();
 
                 Thread.Sleep(100);
             }
-        }
+        }       
+
 
         private static string[] Load(string[] login_file)
         {

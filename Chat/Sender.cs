@@ -1,6 +1,6 @@
 ﻿using System;
 
-using TwitchChatBot.Enums;
+using TwitchChatBot.Enums.Chat;
 using TwitchChatBot.Extensions;
 
 namespace TwitchChatBot.Chat
@@ -11,11 +11,11 @@ namespace TwitchChatBot.Chat
 
         public UserType user_type;
 
-        public Sender(string irc_message)
+        public Sender(string irc_message, string broadcaster_name)
         {
             name = GetSender(irc_message);
 
-            user_type = GetUserType(irc_message);
+            user_type = GetUserType(irc_message, name, broadcaster_name);
         }
 
         /// <summary>
@@ -23,7 +23,7 @@ namespace TwitchChatBot.Chat
         /// </summary>
         /// <param name="irc_message">The message sent from the IRC.</param>
         /// <returns></returns>
-        private UserType GetUserType(string irc_message)
+        private UserType GetUserType(string irc_message, string name, string broadcaster_name)
         {
             string type, 
                    user_type_tag = ";user-type";
@@ -31,6 +31,11 @@ namespace TwitchChatBot.Chat
             int parse_start = irc_message.IndexOf(user_type_tag);
 
             type = irc_message.TextBetween(';', ' ', parse_start, user_type_tag.Length);
+
+            if(name.ToLower() == broadcaster_name.ToLower())
+            {
+                type = "broadcaster";
+            }
 
             //if the user-type is empty, return a custom user-type to be used with the UserType enum
             if (!type.CheckString())

@@ -1,31 +1,41 @@
 ﻿using System;
-using RestSharp.Deserializers;
+using Newtonsoft.Json;
 
-namespace TwitchChatBot.TwitchModels
+namespace TwitchChatBot.Models.TwitchAPI
 {
     class User
     {
-        [DeserializeAs(Name = "type")]
+        [JsonProperty("type")]
         public string type { get; set; }
-        [DeserializeAs(Name = "name")]
+
+        [JsonProperty("name")]
         public string name { get; set; }
-        [DeserializeAs(Name = "created_at")]
+
+        [JsonProperty("created_at")]
         public DateTime created_at { get; set; }
-        [DeserializeAs(Name = "updated_at")]
+
+        [JsonProperty("updated_at")]
         public DateTime updated_at { get; set; }
-        [DeserializeAs(Name = "logo")]
+
+        [JsonProperty("logo")]
         public string logo { get; set; }
-        [DeserializeAs(Name = "_id")]
+
+        [JsonProperty("_id")]
         public long _id { get; set; }
-        [DeserializeAs(Name = "display_name")]
+
+        [JsonProperty("display_name")]
         public string display_name { get; set; }
-        [DeserializeAs(Name = "email")]
+
+        [JsonProperty("email")]
         public string email { get; set; }
-        [DeserializeAs(Name = "partnered")]
+
+        [JsonProperty("partnered")]
         public bool partnered { get; set; }
-        [DeserializeAs(Name = "bio")]
+
+        [JsonProperty("bio")]
         public string bio { get; set; }
-        [DeserializeAs(Name = "notifications")]
+
+        [JsonProperty("notifications")]
         public Notifications notifications { get; set; }
     }
 }

@@ -1,0 +1,37 @@
+{
+  "enabled": false,
+  "permission": 1,
+  "timeouts": [
+    1,
+    30,
+    60,
+    120,
+    240,
+    680
+  ],
+  "Caps": {
+    "enabled": true,
+    "length": 500,
+    "percent": 50,
+    "permission": 1
+  },
+  "Links": {
+    "enabled": true,
+    "permission": 1
+  },
+  "ASCII": {
+    "enabled": true,
+    "length": 25,
+    "percent": 50,
+    "permission": 1
+  },
+  "Wall": {
+    "enabled": true,
+    "length": 350,
+    "permission": 1
+  },
+  "Blacklist": {
+    "enabled": true,
+    "permission": 1
+  }
+}

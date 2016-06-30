@@ -2,25 +2,25 @@
 using System.IO;
 using System.Net.Sockets;
 
-using TwitchChatBot.Enums;
 using TwitchChatBot.Debugger;
+using TwitchChatBot.Enums.Chat;
 
-namespace TwitchChatBot.Connection
+namespace TwitchChatBot.Clients
 {
-    class TwitchConnection
+    class Connection
     {
         private const int port = 6667;
 
         private string ip_address, user_name, user_token;
 
-        TcpClient tcp_Client;
+        private TcpClient tcp_Client;
 
         public StreamReader reader;
         public StreamWriter writer;
 
         ConnectionType connection;
 
-        public TwitchConnection(ConnectionType connection, string user_name, string user_token)
+        public Connection(ConnectionType connection, string user_name, string user_token)
         {
             this.user_name = user_name;
             this.user_token = user_token;
@@ -43,13 +43,13 @@ namespace TwitchChatBot.Connection
             switch (connection)
             {
                 case ConnectionType.Chat:
-                    ip = "irc.twitch.tv";
+                    ip = "irc.chat.twitch.tv";
                     break;
                 case ConnectionType.Whisper:
-                    ip = "199.9.253.119";
+                    ip = "group.tmi.twitch.tv";
                     break;
                 default:
-                    ip = "irc.twitch.tv";
+                    ip = "irc.chat.twitch.tv";
                     break;
             }
 
