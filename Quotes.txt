@@ -1,9 +1,0 @@
-"First quote PogChamp woo" - SixDegreesOfGaming 2/27/2016
-
-"This is a test quote" - SixDegreesOfGaming 3/7/2016
-
-//won't load, duplicate
-"This is a test quote" - SixDegreesOfGaming 3/7/2016
-
-//will load because it has a different date
-"This is a test quote" - SixDegreesOfGaming 3/6/2016
