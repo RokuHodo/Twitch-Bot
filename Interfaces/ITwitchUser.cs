@@ -2,7 +2,7 @@
 
 namespace TwitchChatBot.Interfaces
 {
-    interface ITwitchUser
+    interface ITwitchClient
     {
         RestRequest Request(string url, Method method);
     }

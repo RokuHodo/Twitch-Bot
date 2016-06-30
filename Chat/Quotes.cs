@@ -2,148 +2,78 @@
 using System.Collections.Generic;
 using System.IO;
 
-using TwitchChatBot.Enums.Debugger;
+using Newtonsoft.Json;
+
+using TwitchChatBot.Enums.Debug;
 using TwitchChatBot.Clients;
 using TwitchChatBot.Debugger;
 using TwitchChatBot.Extensions;
 using TwitchChatBot.Extensions.Files;
+using TwitchChatBot.Models.Bot;
 
 namespace TwitchChatBot.Chat
 {
     class Quotes
     {
-        List<string> quotes = new List<string>();
+        List<Quote> quotes_list = new List<Quote>();
 
-        string[] preloaded_quotes;
+        string file_path = Environment.CurrentDirectory + "/JSON/Chat/Quotes.json";
 
-        string file_path = Environment.CurrentDirectory + "/Quotes.txt";
-
-        public Quotes(TwitchUserAuthenticated broadcaster)
+        public Quotes()
         {
-            Debug.Header("Preloading quotes");
-            Debug.SubText("File path: " + file_path);
+            string quotes_preloaded;
 
-            preloaded_quotes = PreLoad(File.ReadAllLines(file_path));
+            List<Quote> quotes_preloaded_list;
 
             Debug.BlankLine();
-            Debug.Header("Loading quotes");
-            Debug.BlankLine();
 
-            foreach (string line in preloaded_quotes)
+            Debug.BlockBegin();
+            Debug.Header("Loading Quotes");
+            Debug.PrintLine("File path:", file_path);
+
+            quotes_preloaded = File.ReadAllText(file_path);
+            quotes_preloaded_list = JsonConvert.DeserializeObject<List<Quote>>(quotes_preloaded);
+
+            if (quotes_preloaded_list != null)
             {
-                Load(line, broadcaster);
+                foreach (Quote quote in quotes_preloaded_list)
+                {
+                    Load(quote);
+                }
             }
+
+            Debug.BlockEnd();
         }
 
         /// <summary>
-        /// Loops through an array of strings and returns the elements that contain more than one word into a <see cref="List{T}"/> on launch.
-        /// Commented lines and whitespace lines are ignored. 
+        /// Loads a <see cref="Quote"/> into the <see cref="quotes_list"/>
         /// </summary>
-        /// <param name="lines">Array of strings to be processed.</param>
-        /// <returns></returns>
-        private string[] PreLoad(string[] lines)
+        /// <param name="command">The command to load.</param>
+        private void Load(Quote quote)
         {
-            List<string> preloaded_quotes = new List<string>();
+            Debug.BlankLine();
+            Debug.SubHeader("Loading quote...");
 
-            foreach(string line in lines)
-            {
-                if (line.CheckString() && !line.StartsWith("//"))
-                {
-                    Debug.SubHeader(" Preloading quote...");            
-
-                    try
-                    {                       
-                        preloaded_quotes.Add(line);
-
-                        Debug.Success(DebugMethod.PreLoad, DebugObject.Quote, line);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.Failed(DebugMethod.PreLoad, DebugObject.Quote, DebugError.Exception);
-                        Debug.SubText("Quote: " + line);
-                        Debug.SubText("Exception: " + ex.Message);
-                    }                    
-                }
-            }            
-
-            return preloaded_quotes.ToArray();
-        }
-
-        /// <summary>
-        /// Loads a quote into the <see cref="quotes"/> <see cref="List{T}"/> on launch.
-        /// </summary>
-        /// <param name="quote">Quote to add.</param>
-        /// <param name="broadcaster">Coontains the broadcaster name to be appended to the end of the quote.</param>
-        /// <param name="message">(Optional parameter) Required to send a chat message or whisper by calling <see cref="Notify"/>.Contains the message sender and room to send the chat message or whisper.</param>
-        /// <param name="bot">(Optional parameter) Required to send a chat message or whisper by calling <see cref="Notify"/>. Contains the methods to send the chat message or whisper.</param>
-        /// <returns></returns>
-        private bool Load(string quote, TwitchUserAuthenticated broadcaster, Message message = null, TwitchBot bot = null)
-        {
-            bool send_response = message != null && bot != null;
-
-            string tag = "quote";
-
-            Debug.SubHeader(" Loading quote...");
-
-            //check to see if the quote is empty
-            if (!CheckSyntax(quote, broadcaster))
-            {
-                if (send_response)
-                {
-                    Notify.Failed(bot, DebugMethod.Add, DebugError.Syntax, message, tag);
-                }                
-
-                Debug.Failed(DebugMethod.Load, DebugObject.Quote, DebugError.Null);
-                Debug.SubText("Quote: null");
-
-                return false;
+            if (!CheckSyntax(DebugMethod.Load, quote) || Exists(DebugMethod.Load, quote))
+            {               
+                return;
             }
-
-            //check to see if the same quote already exists
-            if (Exists(quote))
-            {
-                if (send_response)
-                {
-                    Notify.Failed(bot, DebugMethod.Add, DebugError.ExistYes, message, tag);
-                }
-
-                Debug.Failed(DebugMethod.Load, DebugObject.Quote, DebugError.ExistYes);
-                Debug.SubText("Quote: " + quote);
-
-                return false;
-            }            
 
             try
             {
-                //add the quote!
-                quote = ValidateSyntax(quote, broadcaster);
+                quotes_list.Add(quote);
 
-                quotes.Add(quote);
-
-                if (send_response)
-                {
-                    Notify.Success(bot, DebugMethod.Add, message, tag);
-                }
-
-                Debug.Success(DebugMethod.Load, DebugObject.Quote, quote);
-                Debug.SubText("Quote: " + quote);
+                Debug.Success(DebugMethod.Load, DebugObject.Quote, quote.quote);
+                Debug.PrintObject(quote);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                if (send_response)
-                {
-                    Notify.Failed(bot, DebugMethod.Add, DebugError.Exception, message, tag);
-                }
+                Debug.Error(DebugMethod.Load, DebugObject.Quote, DebugError.Exception);
+                Debug.PrintLine(nameof(quote.quote), quote.quote);
+                Debug.PrintLine(nameof(exception), exception.Message);
 
-                //something went wrong
-                Debug.Failed(DebugMethod.Load, DebugObject.Quote, DebugError.Exception);
-                Debug.SubText("Quote: " + quote);
-                Debug.SubText("Exception: " + ex.Message);
-
-                return false;
+                return;
             }
-
-            return true;            
         }
 
         /// <summary>
@@ -152,23 +82,49 @@ namespace TwitchChatBot.Chat
         /// </summary>
         /// <param name="commands">Used to parse the message for the quote.</param>        
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        /// <param name="bot">Used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the methods to send the chat message or whisper.</param>
         /// <param name="broadcaster">Coontains the broadcaster name to be appended to the end of the quote</param>
-        public void Add(Commands commands, Message message, TwitchBot bot, TwitchUserAuthenticated broadcaster)
+        public void Add(Commands commands, Message message, TwitchClientOAuth broadcaster)
         {
-            Debug.SubHeader(" Adding quote...");
+            Debug.BlankLine();
+            Debug.SubHeader("Adding quote...");
 
-            string quote = commands.ParseCommandString(message);            
+            Quote quote = MessageToQuote(DebugMethod.Add, commands, message, broadcaster);
 
-            quote += $" - {broadcaster.display_name} {DateTime.Now.ToShortDateString()}";
-                       
-            if(Load(quote, broadcaster, message, bot))
+            //check to see if the quote is empty
+            if (!CheckSyntax(DebugMethod.Add, quote))
             {
-                //need to revalidate the quote so the proper quote is added to the text file
-                //could probably just use "out" but I'm too lazy to change it at this point
-                quote = ValidateSyntax(quote, broadcaster);
+                Notify.Failed(DebugMethod.Add, DebugObject.Quote, quote.quote, DebugError.Syntax, message);
 
-                quote.AppendToFile(file_path);
+                return;
+            }
+
+            //check to see if the same quote already exists
+            if (Exists(DebugMethod.Add, quote))
+            {
+                Notify.Failed(DebugMethod.Add, DebugObject.Quote, quote.quote, DebugError.ExistYes, message);
+
+                return;
+            }
+
+            try
+            {
+                quotes_list.Add(quote);
+
+                JsonConvert.SerializeObject(quotes_list, Formatting.Indented).OverrideFile(file_path);
+
+                Notify.Success(DebugMethod.Add, DebugObject.Quote, quote.quote, message);
+
+                Debug.Success(DebugMethod.Load, DebugObject.Quote, quote.quote);
+                Debug.PrintObject(quote);
+            }
+            catch (Exception exception)
+            {
+                Notify.Failed(DebugMethod.Add, DebugObject.Quote, quote.quote, DebugError.Exception, message);
+
+                //something went wrong
+                Debug.Error(DebugMethod.Load, DebugObject.Quote, DebugError.Exception);
+                Debug.PrintLine(nameof(quote.quote), quote.quote);
+                Debug.PrintLine(nameof(exception), exception.Message);
             }
         }
 
@@ -178,14 +134,16 @@ namespace TwitchChatBot.Chat
         /// <returns></returns>
         public string GetQuote()
         {
-            if(quotes.Count < 1)
+            if(quotes_list.Count < 1)
             {
                 return "There are no quotes yet!";
             }
 
             Random random = new Random();
 
-            return quotes[random.Next(quotes.Count)];
+            Quote quote = quotes_list[random.Next(quotes_list.Count)];
+
+            return quote.quote + " - " + quote.quotee + " " + quote.date;
         }
 
         /// <summary>
@@ -195,7 +153,7 @@ namespace TwitchChatBot.Chat
         /// <param name="quote">The quote to check.</param>
         /// <param name="broadcaster">Coontains the broadcaster name to be appended to the end of the quote.</param>
         /// <returns></returns>
-        private string ValidateSyntax(string quote, TwitchUserAuthenticated broadcaster)
+        private string ValidateSyntax(string quote, TwitchClientOAuth broadcaster)
         {
             int index = quote.LastIndexOf($" - {broadcaster.display_name}");
 
@@ -230,7 +188,7 @@ namespace TwitchChatBot.Chat
         /// <param name="quote">The quote to parse.</param>
         /// <param name="broadcaster">Coontains the broadcaster name to be removed from the quote.</param>
         /// <returns></returns>
-        private string RemoveSuffix(string quote, TwitchUserAuthenticated broadcaster)
+        private string RemoveSuffix(string quote, TwitchClientOAuth broadcaster)
         {
             quote = quote.Replace("\"", "");
 
@@ -249,14 +207,15 @@ namespace TwitchChatBot.Chat
         /// </summary>
         /// <param name="quote">The quote to parse.</param>
         /// <returns></returns>
-        private bool CheckSyntax(string quote, TwitchUserAuthenticated broadcaster)
+        private bool CheckSyntax(DebugMethod debug_method, Quote quote)
         {
-            quote = RemoveSuffix(quote, broadcaster);
+            string _quote = quote.quote.Replace("\"", string.Empty);
 
-            if (!quote.CheckString())
+            if (!_quote.CheckString())
             {
-                Debug.Failed(DebugMethod.SyntaxCheck, DebugObject.Quote, DebugObject.Quote, SyntaxError.Null);
-                Debug.SubText("Quote: null");
+                Debug.SyntaxError(DebugObject.Quote, DebugObject.Quote, SyntaxError.Null);
+                Debug.Error(debug_method, DebugObject.Quote, DebugError.Syntax);
+                Debug.PrintLine(nameof(quote.quote), "null");
 
                 return false;
             }
@@ -269,9 +228,50 @@ namespace TwitchChatBot.Chat
         /// </summary>
         /// <param name="quote">Quote to check.</param>
         /// <returns></returns>
-        private bool Exists(string quote)
+        private bool Exists(DebugMethod debug_method, Quote quote)
         {
-            return quotes.Exists(x => x == quote);
+            if(quotes_list.Exists(x => x.quote == quote.quote))
+            {
+                Debug.Error(debug_method, DebugObject.Quote, DebugError.ExistYes);
+                Debug.PrintLine(nameof(quote.quote), quote.quote);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private Quote MessageToQuote(DebugMethod debug_method, Commands commands, Message message, TwitchClientOAuth broadcaster)
+        {
+            string quote_string = string.Empty;
+
+            quote_string = commands.ParseCommandString(message);
+
+            try
+            {
+                Quote quote = new Quote
+                {
+                    quote = quote_string,
+                    quotee = broadcaster.display_name,
+                    date = DateTime.Now                    
+                };
+
+                Debug.Success(DebugMethod.Serialize, DebugObject.Quote, quote.quote);
+                Debug.PrintObject(quote);
+
+                return quote;
+            }
+            catch (Exception exception)
+            {
+                Notify.Failed(debug_method, DebugObject.Quote, quote_string, DebugError.Exception, message);
+
+                Debug.Error(DebugMethod.Serialize, DebugObject.Quote, DebugError.Exception);
+                Debug.Error(debug_method, DebugObject.Quote, DebugError.Null);
+                Debug.PrintLine(nameof(quote_string), quote_string);
+                Debug.PrintLine(nameof(exception), exception.Message);
+
+                return null;
+            }
         }
     }
 }
