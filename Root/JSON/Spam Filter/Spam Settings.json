@@ -11,23 +11,23 @@
   ],
   "Caps": {
     "enabled": true,
-    "length": 500,
+    "length": 10,
     "percent": 50,
     "permission": 1
   },
   "Links": {
-    "enabled": true,
+    "enabled": false,
     "permission": 1
   },
   "ASCII": {
     "enabled": true,
-    "length": 25,
+    "length": 10,
     "percent": 50,
     "permission": 1
   },
   "Wall": {
     "enabled": true,
-    "length": 350,
+    "length": 200,
     "permission": 1
   },
   "Blacklist": {

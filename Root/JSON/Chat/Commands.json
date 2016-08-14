@@ -1,7 +1,7 @@
 [
   {
-    "key": "!addvariable",
-    "response": "!addvariable",
+    "key": "!variable",
+    "response": "!variable",
     "permanent": true,
     "permission": 1,
     "type": 0,
@@ -9,44 +9,35 @@
     "last_used": "0001-01-01T00:00:00"
   },
   {
-    "key": "!removevariable",
-    "response": "!removevariable",
+    "key": "!command",
+    "response": "!command",
     "permanent": true,
     "permission": 1,
     "type": 0,
     "cooldown": 0.0,
-    "last_used": "0001-01-01T00:00:00"
+    "last_used": "2016-08-13T17:04:57.0021854-04:00"
   },
   {
-    "key": "!editvariable",
-    "response": "!editvariable",
+    "key": "!quote",
+    "response": "!quote",
     "permanent": true,
-    "permission": 1,
+    "permission": 0,
     "type": 0,
     "cooldown": 0.0,
-    "last_used": "0001-01-01T00:00:00"
+    "last_used": "2016-08-13T17:03:31.8843681-04:00"
   },
   {
-    "key": "!addcommand",
-    "response": "!addcommand",
+    "key": "!quotes",
+    "response": "!quotes",
     "permanent": true,
-    "permission": 1,
+    "permission": 0,
     "type": 0,
     "cooldown": 0.0,
-    "last_used": "2016-06-14T18:44:44.8730799-04:00"
+    "last_used": "2016-08-13T17:03:34.5441787-04:00"
   },
   {
-    "key": "!editcommand",
-    "response": "!editcommand",
-    "permanent": true,
-    "permission": 1,
-    "type": 0,
-    "cooldown": 0.0,
-    "last_used": "0001-01-01T00:00:00"
-  },
-  {
-    "key": "!removecommand",
-    "response": "!removecommand",
+    "key": "!blacklist",
+    "response": "!blacklist",
     "permanent": true,
     "permission": 1,
     "type": 0,
@@ -78,7 +69,7 @@
     "permission": 1,
     "type": 0,
     "cooldown": 0.0,
-    "last_used": "0001-01-01T00:00:00"
+    "last_used": "2016-08-13T17:04:55.4858562-04:00"
   },
   {
     "key": "!howlong",
@@ -87,25 +78,7 @@
     "permission": 0,
     "type": 0,
     "cooldown": 0.0,
-    "last_used": "0001-01-01T00:00:00"
-  },
-  {
-    "key": "!addquote",
-    "response": "!addquote",
-    "permanent": true,
-    "permission": 0,
-    "type": 0,
-    "cooldown": 0.0,
-    "last_used": "0001-01-01T00:00:00"
-  },
-  {
-    "key": "!quote",
-    "response": "!quote",
-    "permanent": true,
-    "permission": 0,
-    "type": 0,
-    "cooldown": 0.0,
-    "last_used": "0001-01-01T00:00:00"
+    "last_used": "2016-08-13T17:03:49.4863006-04:00"
   },
   {
     "key": "!source",
@@ -114,7 +87,7 @@
     "permission": 0,
     "type": 0,
     "cooldown": 0.0,
-    "last_used": "0001-01-01T00:00:00"
+    "last_used": "2016-08-13T17:03:52.0361366-04:00"
   },
   {
     "key": "!uptime",
@@ -123,7 +96,7 @@
     "permission": 0,
     "type": 0,
     "cooldown": 0.0,
-    "last_used": "0001-01-01T00:00:00"
+    "last_used": "2016-08-13T17:03:55.8534418-04:00"
   },
   {
     "key": "!kadgar",
@@ -132,7 +105,7 @@
     "permission": 0,
     "type": 0,
     "cooldown": 0.0,
-    "last_used": "0001-01-01T00:00:00"
+    "last_used": "2016-08-13T17:03:59.5093843-04:00"
   },
   {
     "key": "!steam",
@@ -141,7 +114,7 @@
     "permission": 0,
     "type": 0,
     "cooldown": 0.0,
-    "last_used": "0001-01-01T00:00:00"
+    "last_used": "2016-08-13T17:04:02.5936286-04:00"
   },
   {
     "key": "!pc",
@@ -150,7 +123,7 @@
     "permission": 0,
     "type": 0,
     "cooldown": 0.0,
-    "last_used": "0001-01-01T00:00:00"
+    "last_used": "2016-08-13T17:04:04.1999543-04:00"
   },
   {
     "key": "!youtube",
@@ -159,7 +132,7 @@
     "permission": 0,
     "type": 0,
     "cooldown": 0.0,
-    "last_used": "0001-01-01T00:00:00"
+    "last_used": "2016-08-13T17:04:06.5079404-04:00"
   },
   {
     "key": "!twitter",
@@ -168,7 +141,7 @@
     "permission": 0,
     "type": 0,
     "cooldown": 0.0,
-    "last_used": "0001-01-01T00:00:00"
+    "last_used": "2016-08-13T17:04:09.1178227-04:00"
   },
   {
     "key": "!music",
@@ -177,7 +150,7 @@
     "permission": 0,
     "type": 0,
     "cooldown": 0.0,
-    "last_used": "0001-01-01T00:00:00"
+    "last_used": "2016-08-13T17:04:12.4485568-04:00"
   },
   {
     "key": "!level",
@@ -186,7 +159,7 @@
     "permission": 0,
     "type": 0,
     "cooldown": 0.0,
-    "last_used": "0001-01-01T00:00:00"
+    "last_used": "2016-08-13T17:04:13.2524353-04:00"
   },
   {
     "key": "!discord",
@@ -195,16 +168,7 @@
     "permission": 0,
     "type": 0,
     "cooldown": 10.0,
-    "last_used": "0001-01-01T00:00:00"
-  },
-  {
-    "key": "!testcommand",
-    "response": "This is a test where [a_variable] into a command response",
-    "permanent": false,
-    "permission": 0,
-    "type": 0,
-    "cooldown": 0.0,
-    "last_used": "0001-01-01T00:00:00"
+    "last_used": "2016-08-13T17:04:16.7670026-04:00"
   },
   {
     "key": "!setfilter",
@@ -216,9 +180,18 @@
     "last_used": "0001-01-01T00:00:00"
   },
   {
-    "key": "!testtest",
-    "response": "reaponse",
+    "key": "!1080",
+    "response": "http://puu.sh/q4aea/b5e04401ae.jpg || http://puu.sh/q49Zt/128289f71f.jpg",
     "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0.0,
+    "last_used": "2016-08-13T17:04:18.9776333-04:00"
+  },
+  {
+    "key": "!commands",
+    "response": "!commands",
+    "permanent": true,
     "permission": 0,
     "type": 0,
     "cooldown": 0.0,
