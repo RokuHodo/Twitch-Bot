@@ -228,7 +228,7 @@ namespace TwitchChatBot.Clients
                         
             //this will work fone for now, but will probably blow up if the arrays get huge...
             followers_added.AddRange(requested_pages_all_list);
-            followers_added.Distinct();
+            followers_added = followers_added.Distinct().ToList();
 
             return requested_pages_all_list.ToArray().Except(comparison_page_old_array).Distinct();
         }
