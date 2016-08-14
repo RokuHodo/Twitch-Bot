@@ -72,6 +72,7 @@
     <Compile Include="Enums\Chat\SpamSetting.cs" />
     <Compile Include="Enums\Extensions\StringSearch.cs" />
     <Compile Include="Enums\Extensions\WhiteSpace.cs" />
+    <Compile Include="Helpers\Paging.cs" />
     <Compile Include="Models\Bot\Spam\Blacklist.cs" />
     <Compile Include="Models\Bot\Spam\SpamSettings.cs" />
     <Compile Include="Models\Bot\Spam\ASCII.cs" />
@@ -87,7 +88,7 @@
     <Compile Include="Clients\TwitchClientOAuth.cs" />
     <Compile Include="Clients\Connection.cs" />
     <Compile Include="JSON\CustomJsonDeserializer.cs" />
-    <Compile Include="Debugger\Debug.cs" />
+    <Compile Include="Debugger\BotDebug.cs" />
     <Compile Include="Enums\Chat\CommandType.cs" />
     <Compile Include="Enums\Chat\ConnectionType.cs" />
     <Compile Include="Enums\Debug\DebugObject.cs" />
@@ -105,6 +106,10 @@
     <Compile Include="Models\Bot\Chat\Command.cs" />
     <Compile Include="Models\Bot\Chat\Quote.cs" />
     <Compile Include="Models\Bot\Chat\Variable.cs" />
+    <Compile Include="Models\TwitchAPI\Preview.cs" />
+    <Compile Include="Models\TwitchAPI\FollowerResult.cs" />
+    <Compile Include="Models\TwitchAPI\Follower.cs" />
+    <Compile Include="Models\TwitchAPI\Links.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Models\TwitchAPI\Channel.cs" />

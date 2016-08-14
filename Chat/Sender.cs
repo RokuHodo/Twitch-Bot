@@ -11,6 +11,12 @@ namespace TwitchChatBot.Chat
 
         public UserType user_type;
 
+        public Sender()
+        {
+            name = string.Empty;
+            user_type = default(UserType);
+        }
+
         public Sender(string irc_message, string broadcaster_name)
         {
             name = GetSender(irc_message);
@@ -22,6 +28,8 @@ namespace TwitchChatBot.Chat
         /// Gets the <see cref="UserType"/> of the user who sent the Twitch message.
         /// </summary>
         /// <param name="irc_message">The message sent from the IRC.</param>
+        /// <param name="name">The name the of the sender.</param>
+        /// <param name="broadcaster_name">The name of the broadcaster. Used to check if the special <see cref="UserType.broadcaster"/> permission should be assigned.</param>
         /// <returns></returns>
         private UserType GetUserType(string irc_message, string name, string broadcaster_name)
         {

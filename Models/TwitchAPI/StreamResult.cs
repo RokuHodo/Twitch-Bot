@@ -6,5 +6,8 @@ namespace TwitchChatBot.Models.TwitchAPI
     {
         [JsonProperty("stream")]
         public Stream stream { get; set; }
+
+        [JsonProperty("_links")]
+        public Links _links { get; set; }
     }
 }

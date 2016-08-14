@@ -9,11 +9,36 @@ namespace TwitchChatBot.Extensions
 {
     static class Universal
     {
-        public static string GetName(this object obj)
+        /// <summary>
+        /// Converts the uptime fragment from <see cref="TimeSpan"/> to a displayable <see cref="string"/>.
+        /// </summary>
+        /// <param name="time">The value of the increment of time to get the string for.</param>
+        /// <param name="time_string">The singular version of the time tier. Example: "hour".</param>
+        /// <returns></returns>
+        public static string GetTimeString(this int time, string time_string)
         {
-            return obj.GetType().GetProperties()[0].Name;
+            string to_return = time.ToString() + " " + time_string;
+
+            if (time == 0)
+            {
+                return string.Empty;
+            }
+            else if (time == 1)
+            {
+                return to_return;
+            }
+            else
+            {
+                return to_return + "s";
+            }
         }
 
+        /// <summary>
+        /// Checks to see if the value of an enum is within the defined range.
+        /// </summary>
+        /// <typeparam name="type">The enum to compare the _enum value against.</typeparam>
+        /// <param name="_enum">The enum value to check.</param>
+        /// <returns></returns>
         public static bool CheckEnumRange<type>(this Enum _enum)
         {
             int enum_size = Enum.GetNames(typeof(type)).Length - 1,
@@ -44,6 +69,36 @@ namespace TwitchChatBot.Extensions
             return true;
         }
 
+        public static string TextAfter(this string str, string find)
+        {
+            string result = string.Empty;
+
+            int index = str.IndexOf(find);
+
+            if(index != -1)
+            {
+                index += find.Length;
+
+                result = str.Substring(index);
+            }
+
+            return result;
+        }
+
+        public static string TextBefore(this string str, string find)
+        {
+            string result = string.Empty;
+
+            int index = str.IndexOf(find);
+
+            if (index != -1)
+            {
+                result = str.Substring(0, index);
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// Gets the text between two characters at the first occurance.
         /// </summary>
@@ -68,7 +123,7 @@ namespace TwitchChatBot.Extensions
             }
             catch (Exception)
             {
-                Debug.Error("Failed to find text between \"{start}\" and \"{end}\"");
+                BotDebug.Error("Failed to find text between \"{start}\" and \"{end}\"");
             }
 
             return result;
@@ -114,7 +169,7 @@ namespace TwitchChatBot.Extensions
 
                             if (parse_start == -1 || parse_end == -1)
                             {
-                                Debug.Error($"Failed to find the text between \"{start}\" and \"{end}\" at occurance = {occurrence}");
+                                BotDebug.Error($"Failed to find the text between \"{start}\" and \"{end}\" at occurance = {occurrence}");
 
                                 parse_start = -1;
                                 parse_end = -1;
@@ -142,13 +197,20 @@ namespace TwitchChatBot.Extensions
             }
             catch (Exception ex)
             {
-                Debug.Error($"Failed to find text between \"{start}\" and \"{end}\"");
-                Debug.PrintLine("Exception: " + ex.Message);
+                BotDebug.Error($"Failed to find text between \"{start}\" and \"{end}\"");
+                BotDebug.PrintLine("Exception: " + ex.Message);
             }
 
             return result;
         }
 
+        /// <summary>
+        /// Wraps a string with the specified strings.
+        /// </summary>
+        /// <param name="str">String to wrap.</param>
+        /// <param name="start">Text to be placed before the string.</param>
+        /// <param name="end">Text to tbe placed after the string.</param>
+        /// <returns></returns>
         public static string Wrap(this string str, string start, string end)
         {
             if (!str.StartsWith(start))
@@ -168,6 +230,7 @@ namespace TwitchChatBot.Extensions
         /// Removes white space from a string either at the begining, left, or both sides.
         /// </summary>
         /// <param name="str">String to be parsed for white space.</param>
+        /// <param name="string_side">Specifies where the white space should be searched for. Default is <see cref="WhiteSpace.Both"/></param>
         /// <returns></returns>
         public static string RemoveWhiteSpace(this string str, WhiteSpace string_side = WhiteSpace.Both)
         {
@@ -201,6 +264,7 @@ namespace TwitchChatBot.Extensions
                     temp = str.RemoveWhiteSpace(WhiteSpace.Left);
                     temp = temp.RemoveWhiteSpace(WhiteSpace.Right);
                     break;
+                case WhiteSpace.All:
                 default:          
                     temp = str.Replace(" ", "");
                     break;
@@ -209,6 +273,12 @@ namespace TwitchChatBot.Extensions
             return temp;
         }
 
+        /// <summary>
+        /// Formats a string into a format that can then be serialized/deserialized. 
+        /// </summary>
+        /// <typeparam name="type">The format to preserialize the string as.</typeparam>
+        /// <param name="str">String to be preserialized.</param>
+        /// <returns></returns>
         public static string PreserializeAs<type>(this string str)
         {
             string preserialized_string = string.Empty;
@@ -231,6 +301,13 @@ namespace TwitchChatBot.Extensions
             return preserialized_string;
         }
 
+        /// <summary>
+        /// Formats a string into a format that can then be serialized/deserialized with a specific label at the begining of the object. 
+        /// </summary>
+        /// <typeparam name="type">The format to preserialize the string as.</typeparam>
+        /// <param name="str">String to be preserialized.</param>
+        /// <param name="label">The label to be placed before the preserialized string.</param>
+        /// <returns></returns>
         public static string PreserializeAs<type>(this string str, string label)
         {
             string preserialized_string = string.Empty;
@@ -253,6 +330,11 @@ namespace TwitchChatBot.Extensions
             return preserialized_string;
         }
 
+        /// <summary>
+        /// Formats a string into a format that can be serialized/deserialized.
+        /// </summary>
+        /// <param name="str">String to be preserialized.</param>
+        /// <returns></returns>
         private static string _Preserialize(string str)
         {
             string[] array = str.StringToArray<string>(',');
@@ -286,6 +368,12 @@ namespace TwitchChatBot.Extensions
             return to_serialize;
         }
 
+        /// <summary>
+        /// Formats a string into a format that can be serialized/deserialized as an array/list.
+        /// </summary>
+        /// <typeparam name="type">The format to preserialize the string as.</typeparam>
+        /// <param name="str">String to be preserialized.</param>
+        /// <returns></returns>
         private static string _Preserialize_Array<type>(string str)
         {
             string[] array = str.StringToArray<string>(',');
@@ -424,9 +512,9 @@ namespace TwitchChatBot.Extensions
         /// <param name="obj">Object to be checked.</param>
         /// <param name="type">Type to be converted to.</param>
         /// <returns></returns>
-        public static bool CanCovertTo(this object obj, Type type)
+        public static bool CanCovertTo<type>(this object obj)
         {
-            TypeConverter converter = TypeDescriptor.GetConverter(type);
+            TypeConverter converter = TypeDescriptor.GetConverter(typeof(type));
 
             return converter.IsValid(obj);
         }

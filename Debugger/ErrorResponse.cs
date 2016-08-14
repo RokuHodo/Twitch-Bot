@@ -35,7 +35,10 @@ namespace TwitchChatBot.Debugger
                     break;
                 case DebugError.Convert:
                     reason = "could not convert object";
-                    break;                
+                    break;
+                case DebugError.Bounds:
+                    reason = "out of bounds";
+                    break;
                 default:
                     reason = "unknown error"; ;
                     break;
@@ -48,6 +51,7 @@ namespace TwitchChatBot.Debugger
         /// Gets the error message to append to the failed syntax operation message
         /// </summary>
         /// <param name="error">The error that occured while trying to perform the operation.</param>
+        /// <param name="value">The size of an <see cref="Enum"/></param>
         /// <returns></returns>
         public string GetError(SyntaxError error, int value)
         {

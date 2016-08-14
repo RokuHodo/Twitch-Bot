@@ -8,6 +8,7 @@
         Permanent,
         Exception,
         Convert,        
-        Null
+        Null,
+        Bounds
     }
 }

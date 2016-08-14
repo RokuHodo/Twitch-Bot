@@ -7,12 +7,16 @@ using TwitchChatBot.Clients;
 using TwitchChatBot.Debugger;
 using TwitchChatBot.Extensions;
 
-using TwitchChatBot.Chat;
+using TwitchChatBot.Models.TwitchAPI;
+using System.Linq;
 
 /*
-    TODO(Six):
+    TODO: - Make quotes non-zero based?
+          - Have a better !commands command
+          - Make sure all debug and Notify messages are in place
+          - Keep testing follower notificaiton
+          - Put in host notifications
 
-        - Add in the ability to whisper through the command line
 */
 
 namespace TwitchChatBot
@@ -29,10 +33,11 @@ namespace TwitchChatBot
 
             if(login == null || login.Length != 3)
             {
-                Debug.Error($"Failed to load the login information: {login.Length} login credentials found, 3 credentials are required");
-                Debug.PrintLine("Bot token, broadcaster token, and a client id");
+                BotDebug.Error($"Failed to load the login information: {login.Length} login credentials found, 3 credentials are required");
+                BotDebug.PrintLine("Bot token, broadcaster token, and a client id");
 
-                Console.WriteLine(Environment.NewLine + "Press any key to exit...");
+                BotDebug.BlankLine();
+                BotDebug.PrintLine("Press any key to exit...");
                 Console.ReadKey();
 
                 Environment.Exit(0);
@@ -42,10 +47,10 @@ namespace TwitchChatBot
 
             if (!broadcaster.display_name.CheckString())
             {
-                Debug.Error("Failed to find the broadcaster");
-                Debug.BlankLine();
+                BotDebug.Error("Failed to find the broadcaster");
+                BotDebug.BlankLine();
 
-                Debug.PrintLine("Press any key to exit...");
+                BotDebug.PrintLine("Press any key to exit...");
                 Console.ReadKey();
 
                 Environment.Exit(0);
@@ -56,18 +61,19 @@ namespace TwitchChatBot
 
             while (true)
             {
-                bot.TryProcessCommand();
+                bot.TrySendingWhisper();
+                bot.TryFollowerNotification();                
+
+                bot.TrySendingPrivateMessage();
 
                 Thread.Sleep(100);
             }
         }       
 
-
         private static string[] Load(string[] login_file)
         {
             List<string> login_info = new List<string>();
 
-            //remove any comments or blank lines
             foreach (string line in login_file)
             {
                 if (line.CheckString() && !line.StartsWith("//"))

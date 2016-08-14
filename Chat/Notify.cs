@@ -1,5 +1,6 @@
 ﻿using TwitchChatBot.Enums.Chat;
 using TwitchChatBot.Enums.Debug;
+using TwitchChatBot.Extensions;
 using TwitchChatBot.Clients;
 using TwitchChatBot.Debugger;
 
@@ -19,6 +20,11 @@ namespace TwitchChatBot.Chat
             return bot;
         }
 
+        public static void SendMessage(Message message, string response)
+        {
+            SendResponse(MessageType.Chat, message, response);
+        }
+
         /// <summary>
         /// Sends a chat message on a successful operation of adding/editing/removing a command,variable, or quote.
         /// </summary>
@@ -31,19 +37,32 @@ namespace TwitchChatBot.Chat
             string notify = message.sender.name;
 
             switch (operation)
-            {
-                case DebugMethod.Add:
-                case DebugMethod.Edit:
+            {               
                 case DebugMethod.Remove:
                 case DebugMethod.Update:
-                    notify += " " + operation.ToString().ToLower() + "ed the " + debug_object.ToString().ToLower() + ": " + success_message;
+                case DebugMethod.Retrieve:
+                    notify += " " + operation.ToString().Replace("_", " ").ToLower() + "d the " + debug_object.ToString().Replace("_", " ").ToLower();
+                    break;
+                case DebugMethod.Add:
+                case DebugMethod.Edit:
+                    notify += " " + operation.ToString().Replace("_", " ").ToLower() + "ed the " + debug_object.ToString().Replace("_", " ").ToLower();
                     break;
                 default:
                     notify = "";
                     break;
             }
 
+            if(notify.CheckString() && success_message.CheckString())
+            {
+                notify += ": " + success_message;
+            }
+
             SendResponse(MessageType.Chat, message, notify);
+        }
+
+        public static void SendWhisper(Message message, string whisper)
+        {
+            SendResponse(MessageType.Whisper, message, whisper);
         }
 
         /// <summary>
@@ -54,7 +73,7 @@ namespace TwitchChatBot.Chat
         /// <param name="error">The error that occured while trying to perform the operation.</param>
         /// <param name="message">Contains the message sender to send the whisper to.</param>
         /// <param name="value">String to print in addition to the failed message.</param>
-        public static void Failed(DebugMethod operation, DebugObject debug_object, string error_message, DebugError error, Message message, int value = 0)
+        public static void Error(DebugMethod operation, DebugObject debug_object, string error_message, DebugError error, Message message, int value = 0)
         {
             string notify = "Failed to ";
 
@@ -64,7 +83,8 @@ namespace TwitchChatBot.Chat
                 case DebugMethod.Edit:
                 case DebugMethod.Remove:
                 case DebugMethod.Update:
-                    notify += operation.ToString().ToLower() + " the " + debug_object.ToString().ToLower() + " \"" + error_message + "\": " + new ErrorResponse().GetError(error);
+                case DebugMethod.Retrieve:
+                    notify += operation.ToString().Replace("_", " ").ToLower() + " the " + debug_object.ToString().Replace("_", " ").ToLower() + " \"" + error_message + "\": " + new ErrorResponse().GetError(error);
                     break;
                 default:
                     notify = "";
@@ -74,7 +94,7 @@ namespace TwitchChatBot.Chat
             SendResponse(MessageType.Whisper, message, notify);
         }
 
-        public static void SendResponse(MessageType message_type, Message message, string response)
+        private static void SendResponse(MessageType message_type, Message message, string response)
         {
             GetBot().SendResponse(message_type, message, response);
         }

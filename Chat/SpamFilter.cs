@@ -21,14 +21,12 @@ namespace TwitchChatBot.Chat
 {
     class SpamFilter
     {
-        static string root = Environment.CurrentDirectory + "/JSON/Spam Filter/";
+        readonly string file_path_banned_users = Environment.CurrentDirectory + "/JSON/Spam Filter/Banned USers.json",
+                        file_path_blacklisted_words = Environment.CurrentDirectory + "/JSON/Spam Filter/Blacklisted Words.json",
+                        file_path_settings = Environment.CurrentDirectory + "/JSON/Spam Filter/Spam Settings.json";
 
-        string file_path_banned_users = root + "/Banned USers.json",
-               file_path_blacklisted_words = root +  "/Blacklisted Words.json",
-               file_path_settings = Environment.CurrentDirectory + "/JSON/Spam Filter/Spam Settings.json";
-
-        List<string> banned_users,
-                     blacklisted_words;
+        List<string> banned_users_list,
+                     blacklisted_words_list;
 
         Dictionary<string, int> timeout_tracker;
 
@@ -36,111 +34,111 @@ namespace TwitchChatBot.Chat
 
         public SpamFilter()
         {
-            banned_users = new List<string>();
-            blacklisted_words = new List<string>();
+            banned_users_list = new List<string>();
+            blacklisted_words_list = new List<string>();
             timeout_tracker = new Dictionary<string, int>();
 
-            Debug.BlockBegin();
+            BotDebug.BlockBegin();
 
-            Debug.BlankLine();
-            Debug.Header("Loading Banned Users");
-            Debug.PrintLine("File path:", file_path_banned_users);
+            BotDebug.BlankLine();
+            BotDebug.Header("Loading Banned Users");
+            BotDebug.PrintLine("File path:", file_path_banned_users);
 
-            LoadBannedUsers(file_path_banned_users);
+            Load_BannedUsers(file_path_banned_users);
 
-            Debug.BlockEnd();
-            Debug.BlockBegin();
+            BotDebug.BlockEnd();
+            BotDebug.BlockBegin();
 
-            Debug.BlankLine();
-            Debug.Header("Loading Blacklisted Words");
-            Debug.PrintLine("File path:", file_path_blacklisted_words);
-            Debug.BlankLine();
+            BotDebug.BlankLine();
+            BotDebug.Header("Loading Blacklisted Words");
+            BotDebug.PrintLine("File path:", file_path_blacklisted_words);
+            BotDebug.BlankLine();
 
-            LoadBlacklist(file_path_blacklisted_words);
+            Load_BlacklistedWords(file_path_blacklisted_words);
 
-            Debug.BlockEnd();
-            Debug.BlockBegin();
+            BotDebug.BlockEnd();
+            BotDebug.BlockBegin();
 
-            Debug.BlankLine();
-            Debug.Header("Loading Spam Filter Settings");
-            Debug.PrintLine("File path:", file_path_settings);
-            Debug.BlankLine();
+            BotDebug.BlankLine();
+            BotDebug.Header("Loading Spam Filter Settings");
+            BotDebug.PrintLine("File path:", file_path_settings);
+            BotDebug.BlankLine();
 
-            LoadSettings(file_path_settings);
+            Load_Settings(file_path_settings);
 
-            Debug.BlockEnd();                                            
+            BotDebug.BlockEnd();                                            
         }
 
         #region Load spam settings
 
-        private void LoadBannedUsers(string file_path)
+        private void Load_BannedUsers(string file_path)
         {           
             try
             {               
-                string preloaded = File.ReadAllText(file_path);
+                string banned_users_preloaded = File.ReadAllText(file_path);
 
-                if (!preloaded.CheckString())
+                if (!banned_users_preloaded.CheckString())
                 {
-                    Debug.BlankLine();
-                    Debug.Notify("No banned users found");
+                    BotDebug.BlankLine();
+                    BotDebug.Notify("No banned users found");
 
                     return;
                 }
 
-                List<string> users = JsonConvert.DeserializeObject<List<string>>(preloaded);
+                List<string> users = JsonConvert.DeserializeObject<List<string>>(banned_users_preloaded);
 
                 if (users.Count == users.Distinct().Count())
                 {
-                    banned_users = users;
+                    banned_users_list = users;
                 }
                 else
                 {
-                    banned_users = users.Distinct().ToList();
+                    banned_users_list = users.Distinct().ToList();
                 }
             }
             catch(Exception exception)
             {
-                Debug.Error(DebugMethod.Load, DebugObject.Banned_Users, DebugError.Exception);
-                Debug.PrintLine(nameof(exception), exception.Message);
+                BotDebug.Error(DebugMethod.Load, DebugObject.Banned_Users, DebugError.Exception);
+                BotDebug.PrintLine(nameof(exception), exception.Message);
             }            
         }
 
-        private void LoadBlacklist(string file_path)
+        private void Load_BlacklistedWords(string file_path)
         {
             try
             {
-                string preloaded = File.ReadAllText(file_path);
+                string blacklisted_words_preloaded = File.ReadAllText(file_path);
 
-                if (!preloaded.CheckString())
+                if (!blacklisted_words_preloaded.CheckString())
                 {
-                    Debug.BlankLine();
-                    Debug.Notify("No blacklisted words found");
+                    BotDebug.BlankLine();
+                    BotDebug.Notify("No blacklisted words found");
 
                     return;
                 }
 
-                List<string> words = JsonConvert.DeserializeObject<List<string>>(preloaded);
+                List<string> words = JsonConvert.DeserializeObject<List<string>>(blacklisted_words_preloaded);
 
                 if (words.Count == words.Distinct().Count())
                 {
-                    blacklisted_words = words;
+                    blacklisted_words_list = words;
                 }
                 else
                 {
-                    blacklisted_words = words.Distinct().ToList();
+                    blacklisted_words_list = words.Distinct().ToList();
                 }
 
-                Debug.SubHeader("Blacklisted words");
-                Debug.PrintObject(blacklisted_words);
+                BotDebug.SubHeader("Blacklisted words");
+                BotDebug.PrintObject(blacklisted_words_list);
             }
-            catch (Exception exception)
+            catch(Exception exception)
             {
-                Debug.Error(DebugMethod.Load, DebugObject.Blacklisted_Words, DebugError.Exception);
-                Debug.PrintLine(nameof(exception), exception.Message);
+                BotDebug.Error(DebugMethod.Load, DebugObject.Blacklisted_Words, DebugError.Exception);
+                BotDebug.PrintLine(nameof(exception), exception.Message);
             }
         }
 
-        private void LoadSettings(string file_path)
+        private void Load_Settings(string file_path)
         {
             try
             {
@@ -148,21 +146,21 @@ namespace TwitchChatBot.Chat
 
                 if (!settings.CheckString())
                 {
-                    Debug.BlankLine();
-                    Debug.Notify("No spam settings found");
+                    BotDebug.BlankLine();
+                    BotDebug.Notify("No spam settings found");
 
                     return;
                 }
 
                 master_settings = JsonConvert.DeserializeObject<SpamSettings>(settings);
 
-                Debug.SubHeader("Spam settings");
-                Debug.PrintObject(master_settings);
+                BotDebug.SubHeader("Spam settings");
+                BotDebug.PrintObject(master_settings);
             }
             catch(Exception exception)
             {
-                Debug.Error(DebugMethod.Load, DebugObject.Spam_Settings, DebugError.Exception);
-                Debug.PrintLine(nameof(exception), exception.Message);
+                BotDebug.Error(DebugMethod.Load, DebugObject.Spam_Settings, DebugError.Exception);
+                BotDebug.PrintLine(nameof(exception), exception.Message);
             }          
         }
 
@@ -170,7 +168,7 @@ namespace TwitchChatBot.Chat
 
         #region Spam checks
 
-        public bool MessagePasses(Message message, TwitchClientOAuth bot, TwitchClientOAuth broadcaster)
+        public bool CheckMessage(Message message, TwitchClientOAuth bot, TwitchClientOAuth broadcaster)
         {
             if(master_settings == null || master_settings == default(SpamSettings))
             {
@@ -194,7 +192,7 @@ namespace TwitchChatBot.Chat
                 return false;
             }
 
-            if (!CheckBlacklist(message, master_settings.Blacklist, blacklisted_words))
+            if (!CheckBlacklist(message, master_settings.Blacklist, blacklisted_words_list))
             {
                 Timeout(bot, broadcaster, message.sender.name, "use of blacklisted word(s)", master_settings.timeouts);
 
@@ -239,7 +237,7 @@ namespace TwitchChatBot.Chat
 
             int characters_ascii = 0;
 
-            string body_no_whitespace = message.body.RemoveWhiteSpace(WhiteSpace.Both);
+            string body_no_whitespace = message.body.RemoveWhiteSpace(WhiteSpace.All);
 
             if (body_no_whitespace.Length < settings.length)
             {
@@ -261,7 +259,7 @@ namespace TwitchChatBot.Chat
 
         private bool CheckBlacklist(Message message, Blacklist settings, List<string> blacklist)
         {
-            if(blacklisted_words.Count == 0)
+            if(blacklisted_words_list.Count == 0)
             {
                 return true;
             }
@@ -313,25 +311,23 @@ namespace TwitchChatBot.Chat
             {
                 return true;
             }
-
-            string body_no_whitespace = message.body.RemoveWhiteSpace();
-
-            char[] body = body_no_whitespace.ToCharArray(),
-                   body_uppercase = body_no_whitespace.ToUpper().ToCharArray();
-
+            
             int characters_uppercase = 0;
 
-            for (int index = 0; index < body.Length; index++)
+            string body_no_whitespace = message.body.RemoveWhiteSpace(WhiteSpace.All);
+
+            byte[] ascii_bytes = Encoding.ASCII.GetBytes(body_no_whitespace.ToCharArray());
+
+            //this method only supports english for now
+            foreach(byte _byte in ascii_bytes)
             {
-                //NOTE: this will flag any special character as an uppercase since it has no upprcase variant
-                //Add a filter in the future?
-                if (body[index] == body_uppercase[index])
+                if(_byte > 64 && _byte < 91)
                 {
                     ++characters_uppercase;
                 }
             }
 
-            return CheckPercent(settings.percent, characters_uppercase, body.Length);
+            return CheckPercent(settings.percent, characters_uppercase, body_no_whitespace.Length);
         }
 
         private bool CheckLinks(Message message, Links settings)
@@ -384,23 +380,23 @@ namespace TwitchChatBot.Chat
                 bot.SendWhisper(sender, "Timed out for " + reason + ". [warning]");
                 broadcaster.Timeout(sender, timeout_increments[timeout_tracker[sender]], reason + " [warning - bot]");
 
-                Debug.Error("\"" + sender + "\" has been timed out for \"" + timeout_increments[timeout_tracker[sender]] + "\" second(s)");
-                Debug.PrintLine(nameof(reason), reason);
+                BotDebug.Error("\"" + sender + "\" has been timed out for \"" + timeout_increments[timeout_tracker[sender]] + "\" second(s)");
+                BotDebug.PrintLine(nameof(reason), reason);
             }
             else
             {
-                if (!banned_users.Contains(sender))
+                if (!banned_users_list.Contains(sender))
                 {
-                    banned_users.Add(sender);
+                    banned_users_list.Add(sender);
 
-                    JsonConvert.SerializeObject(banned_users, Formatting.Indented).OverrideFile(file_path_banned_users);
+                    JsonConvert.SerializeObject(banned_users_list, Formatting.Indented).OverrideFile(file_path_banned_users);
                 }
 
                 bot.SendWhisper(sender, "Banned for " + reason + ".");
                 broadcaster.Ban(sender, reason + " [bot]");
 
-                Debug.Error("\"" + sender + "\" has been banned.");
-                Debug.PrintLine(nameof(reason), reason);
+                BotDebug.Error("\"" + sender + "\" has been banned.");
+                BotDebug.PrintLine(nameof(reason), reason);
             }
 
             ++timeout_tracker[sender];
@@ -410,10 +406,235 @@ namespace TwitchChatBot.Chat
 
         #region Change and apply spam settings
 
+        public void Modify_BlacklistedWords(Commands commands, Message message)
+        {
+            string temp = commands.ParseCommandString(message),
+                   key = temp.TextBefore(" ");
+
+            message.body = temp.TextAfter(" ");
+
+            try
+            {
+                switch (key)
+                {
+                    case "!add":
+                        Add_BlacklistedWord(message);
+                        break;
+                    case "!edit":
+                        Edit_BlacklistedWord(message);
+                        break;
+                    case "!remove":
+                        Remove_BlacklistedWord(message);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            catch (Exception exception)
+            {
+                BotDebug.Error(DebugMethod.Modify, DebugObject.Command, DebugError.Exception);
+                BotDebug.PrintLine(nameof(exception), exception.Message);
+                BotDebug.PrintLine(nameof(temp), temp);
+                BotDebug.PrintLine(nameof(key), key);
+                BotDebug.PrintLine(nameof(message.body), message.body);
+            }
+        }
+
+        private void Add_BlacklistedWord(Message message)
+        {
+            BotDebug.BlankLine();
+            BotDebug.SubHeader("Adding blacklisted words...");
+
+            bool list_modified = false;
+
+            string blacklisted_words = message.body;
+
+            string[] blacklisted_words_array;
+
+            if (!blacklisted_words.CheckString())
+            {
+                BotDebug.Error(DebugMethod.Add, DebugObject.Blacklisted_Words, DebugError.Null);
+                BotDebug.PrintLine(nameof(blacklisted_words), "null");
+
+                return;
+            }
+
+            blacklisted_words_array = blacklisted_words.StringToArray<string>(',');
+
+            try
+            {
+                foreach (string word in blacklisted_words_array)
+                {
+                    string _word = word.RemoveWhiteSpace();
+
+                    if (blacklisted_words_list.Contains(_word))
+                    {
+                        BotDebug.Error(DebugMethod.Add, DebugObject.Blacklisted_Words, DebugError.ExistYes);
+                    }
+                    else
+                    {
+                        BotDebug.Success(DebugMethod.Add, DebugObject.Blacklisted_Words, _word);
+
+                        blacklisted_words_list.Add(_word);
+
+                        list_modified = true;
+                    }
+
+                    BotDebug.PrintLine(nameof(word), _word);
+                }
+
+                if (list_modified)
+                {
+                    Notify.Success(DebugMethod.Add, DebugObject.Blacklisted_Words, string.Empty, message);
+
+                    JsonConvert.SerializeObject(blacklisted_words_list, Formatting.Indented).OverrideFile(file_path_blacklisted_words);
+                }
+            }
+            catch (Exception exception)
+            {
+                Notify.Error(DebugMethod.Add, DebugObject.Blacklisted_Words, nameof(blacklisted_words), DebugError.Exception, message);
+
+                BotDebug.Error(DebugMethod.Add, DebugObject.Blacklisted_Words, DebugError.Exception);
+                BotDebug.PrintLine(nameof(exception), exception.Message);
+            }
+        }
+
+        private void Edit_BlacklistedWord(Message message)
+        {
+            BotDebug.BlankLine();
+            BotDebug.SubHeader("Editting blacklisted word...");
+
+            string blacklisted_words = message.body;
+
+            string[] blacklisted_words_array;
+
+            if (!blacklisted_words.CheckString())
+            {
+                Notify.Error(DebugMethod.Edit, DebugObject.Blacklisted_Words, string.Empty, DebugError.Null, message);
+
+                BotDebug.Error(DebugMethod.Edit, DebugObject.Blacklisted_Words, DebugError.Null);
+                BotDebug.PrintLine(nameof(blacklisted_words), "null");
+
+                return;
+            }
+
+            blacklisted_words_array = blacklisted_words.StringToArray<string>(',');
+
+            //only allow one word to be editted at a time now 
+            if (blacklisted_words_array.Length != 2)
+            {
+                BotDebug.SyntaxError(DebugObject.Blacklisted_Words, DebugObject.Blacklisted_Words, SyntaxError.ArrayLength);
+                BotDebug.PrintLine(nameof(blacklisted_words_array.Length), blacklisted_words_array.Length.ToString());
+                BotDebug.PrintLine("required length", "2");
+
+                Notify.Error(DebugMethod.Edit, DebugObject.Blacklisted_Words, blacklisted_words_array[0], DebugError.Syntax, message);
+
+                BotDebug.Error(DebugMethod.Edit, DebugObject.Blacklisted_Words, DebugError.Syntax);
+
+                return;
+            }
+
+            if (!blacklisted_words_list.Contains(blacklisted_words_array[0]))
+            {
+                Notify.Error(DebugMethod.Edit, DebugObject.Blacklisted_Words, blacklisted_words_array[0], DebugError.ExistNo, message);
+
+                BotDebug.Error(DebugMethod.Edit, DebugObject.Blacklisted_Words, DebugError.ExistNo);
+                BotDebug.PrintLine("word", blacklisted_words_array[0]);
+
+                return;
+            }
+
+            try
+            {
+                blacklisted_words_list.Remove(blacklisted_words_array[0]);
+                blacklisted_words_list.Add(blacklisted_words_array[1].RemoveWhiteSpace());
+
+                JsonConvert.SerializeObject(blacklisted_words_list, Formatting.Indented).OverrideFile(file_path_blacklisted_words);
+
+                Notify.Success(DebugMethod.Edit, DebugObject.Blacklisted_Words, blacklisted_words_array[0] + " -> " + blacklisted_words_array[1], message);
+
+                BotDebug.Success(DebugMethod.Edit, DebugObject.Blacklisted_Words, blacklisted_words_array[0]);
+                BotDebug.PrintLine("old word", blacklisted_words_array[0]);
+                BotDebug.PrintLine("new word", blacklisted_words_array[1].RemoveWhiteSpace());
+            }
+            catch (Exception exception)
+            {
+                Notify.Error(DebugMethod.Edit, DebugObject.Blacklisted_Words, blacklisted_words_array[0], DebugError.Exception, message);
+
+                BotDebug.Error(DebugMethod.Edit, DebugObject.Blacklisted_Words, DebugError.Exception);
+                BotDebug.PrintLine(nameof(exception), exception.Message);
+
+                BotDebug.BlankLine();
+                BotDebug.PrintLine("Array:");
+                BotDebug.PrintObject(blacklisted_words_array);
+            }
+        }
+
+        private void Remove_BlacklistedWord(Message message)
+        {
+            BotDebug.BlankLine();
+            BotDebug.SubHeader("Removing blacklisted words...");
+
+            bool list_modified = false;
+
+            string blacklisted_words = message.body;
+
+            string[] blacklisted_words_array;
+
+            if (!blacklisted_words.CheckString())
+            {
+                BotDebug.Error(DebugMethod.Remove, DebugObject.Blacklisted_Words, DebugError.Null);
+                BotDebug.PrintLine(nameof(blacklisted_words), "null");
+
+                return;
+            }
+
+            blacklisted_words_array = blacklisted_words.StringToArray<string>(',');
+
+            try
+            {
+                foreach (string word in blacklisted_words_array)
+                {
+                    string _word = word.RemoveWhiteSpace();
+
+                    if (!blacklisted_words_list.Contains(_word))
+                    {
+                        BotDebug.Error(DebugMethod.Remove, DebugObject.Blacklisted_Words, DebugError.ExistNo);
+                    }
+                    else
+                    {
+                        BotDebug.Success(DebugMethod.Remove, DebugObject.Blacklisted_Words, _word);
+
+                        blacklisted_words_list.Remove(_word);
+
+                        list_modified = true;
+                    }
+
+                    BotDebug.PrintLine(nameof(word), _word);
+                }
+
+                if (list_modified)
+                {
+                    Notify.Success(DebugMethod.Remove, DebugObject.Blacklisted_Words, string.Empty, message);
+
+                    JsonConvert.SerializeObject(blacklisted_words_list, Formatting.Indented).OverrideFile(file_path_blacklisted_words);
+                }
+            }
+            catch (Exception exception)
+            {
+                Notify.Error(DebugMethod.Remove, DebugObject.Blacklisted_Words, nameof(blacklisted_words), DebugError.Exception, message);
+
+                BotDebug.Error(DebugMethod.Remove, DebugObject.Blacklisted_Words, DebugError.Exception);
+                BotDebug.PrintLine(nameof(exception), exception.Message);
+            }
+        }             
+
         public void ChangeSetting(Message message, Commands commands)
         {
-            Debug.BlankLine();
-            Debug.SubHeader("Updating spam setting...");
+            BotDebug.BlankLine();
+            BotDebug.SubHeader("Updating spam setting...");
+
+            bool updated = false;
 
             string preserialized,
                    body = commands.ParseCommandString(message);
@@ -422,8 +643,10 @@ namespace TwitchChatBot.Chat
 
             if(spam_setting == SpamSetting.None)
             {
-                Debug.Error(DebugMethod.Update, DebugObject.Setting, DebugError.Null);
-                Debug.PrintLine("sub setting", "null");
+                Notify.Error(DebugMethod.Update, DebugObject.Spam_Settings, spam_setting.ToString(), DebugError.Null, message);
+
+                BotDebug.Error(DebugMethod.Update, DebugObject.Setting, DebugError.Null);
+                BotDebug.PrintLine("sub setting", "null");
 
                 return;
             }
@@ -432,8 +655,10 @@ namespace TwitchChatBot.Chat
 
             if(setting == null)
             {
-                Debug.Error(DebugMethod.Update, DebugObject.Spam_Settings, DebugError.Null);
-                Debug.PrintLine("setting", "null");
+                Notify.Error(DebugMethod.Update, DebugObject.Spam_Settings, string.Empty, DebugError.Null, message);
+
+                BotDebug.Error(DebugMethod.Update, DebugObject.Spam_Settings, DebugError.Null);
+                BotDebug.PrintLine("setting", "null");
 
                 return;
             }
@@ -446,10 +671,12 @@ namespace TwitchChatBot.Chat
                         master_settings.ASCII.enabled = ApplySetting<bool>(setting.ASCII.enabled, master_settings.ASCII.enabled, "enabled", preserialized);
                         master_settings.ASCII.length = ApplySetting<int>(setting.ASCII.length, master_settings.ASCII.length, "length", preserialized);
                         master_settings.ASCII.percent = ApplySetting<int>(setting.ASCII.percent, master_settings.ASCII.percent, "percent", preserialized);
-                        master_settings.ASCII.permission = ApplySetting<UserType>(setting.ASCII.percent, master_settings.ASCII.permission, "permission", preserialized);
+                        master_settings.ASCII.permission = ApplySetting<UserType>(setting.ASCII.permission, master_settings.ASCII.permission, "permission", preserialized);                                               
 
-                        Debug.Success(DebugMethod.Update, DebugObject.Spam_Settings, master_settings.ASCII.GetType().Name);
-                        Debug.PrintObject(master_settings.ASCII);
+                        BotDebug.Success(DebugMethod.Update, DebugObject.Spam_Settings, nameof(master_settings.ASCII));
+                        BotDebug.PrintObject(master_settings.ASCII);
+
+                        updated = true;
 
                         break;
                     case SpamSetting.Caps:
@@ -458,16 +685,20 @@ namespace TwitchChatBot.Chat
                         master_settings.Caps.percent = ApplySetting<int>(setting.Caps.percent, master_settings.Caps.percent, "percent", preserialized);
                         master_settings.Caps.permission = ApplySetting<UserType>(setting.Caps.percent, master_settings.Caps.permission, "permission", preserialized);
 
-                        Debug.Success(DebugMethod.Update, DebugObject.Spam_Settings, master_settings.Caps.GetType().Name);
-                        Debug.PrintObject(master_settings.Caps);
+                        BotDebug.Success(DebugMethod.Update, DebugObject.Spam_Settings, nameof(master_settings.Caps));
+                        BotDebug.PrintObject(master_settings.Caps);
+
+                        updated = true;
 
                         break;
                     case SpamSetting.Links:
                         master_settings.Links.enabled = ApplySetting<bool>(setting.Links.enabled, master_settings.Links.enabled, "enabled", preserialized);
                         master_settings.Links.permission = ApplySetting<UserType>(setting.Links.permission, master_settings.Links.permission, "permission", preserialized);
 
-                        Debug.Success(DebugMethod.Update, DebugObject.Spam_Settings, master_settings.Links.GetType().Name);
-                        Debug.PrintObject(master_settings.Links);
+                        BotDebug.Success(DebugMethod.Update, DebugObject.Spam_Settings, nameof(master_settings.Links));
+                        BotDebug.PrintObject(master_settings.Links);
+
+                        updated = true;
 
                         break;
                     case SpamSetting.Wall:
@@ -475,54 +706,68 @@ namespace TwitchChatBot.Chat
                         master_settings.Wall.length = ApplySetting<int>(setting.Wall.length, master_settings.Wall.length, "length", preserialized);                        
                         master_settings.Wall.permission = ApplySetting<UserType>(setting.Wall.permission, master_settings.Wall.permission, "permission", preserialized);
 
-                        Debug.Success(DebugMethod.Update, DebugObject.Spam_Settings, master_settings.Wall.GetType().Name);
-                        Debug.PrintObject(master_settings.Wall);
+                        BotDebug.Success(DebugMethod.Update, DebugObject.Spam_Settings, nameof(master_settings.Wall));
+                        BotDebug.PrintObject(master_settings.Wall);
+
+                        updated = true;
 
                         break;
                     case SpamSetting.enabled:
                         master_settings.enabled = ApplySetting<bool>(setting.enabled, master_settings.enabled, "enabled", preserialized);
 
-                        Debug.Success(DebugMethod.Update, DebugObject.Spam_Settings, "Master");
-                        Debug.PrintLine("enabled", master_settings.enabled.ToString());
+                        BotDebug.Success(DebugMethod.Update, DebugObject.Spam_Settings, "Master");
+                        BotDebug.PrintLine("enabled", master_settings.enabled.ToString());
+
+                        updated = true;
 
                         break;
                     case SpamSetting.permission:
                         master_settings.permission = ApplySetting<UserType>(setting.permission, master_settings.permission, "permission", preserialized);
 
-                        Debug.Success(DebugMethod.Update, DebugObject.Spam_Settings, "Master");
-                        Debug.PrintLine("permission", master_settings.permission.ToString());
+                        BotDebug.Success(DebugMethod.Update, DebugObject.Spam_Settings, "Master");
+                        BotDebug.PrintLine("permission", master_settings.permission.ToString());
+
+                        updated = true;
 
                         break;
                     case SpamSetting.timeouts:
                         master_settings.timeouts = ApplySetting<int[]>(setting.timeouts, master_settings.timeouts, "timeouts", preserialized);
 
-                        Debug.Success(DebugMethod.Update, DebugObject.Spam_Settings, nameof(master_settings.timeouts));
-                        Debug.PrintObject(master_settings.timeouts);
+                        BotDebug.Success(DebugMethod.Update, DebugObject.Spam_Settings, nameof(master_settings.timeouts));
+                        BotDebug.PrintObject(master_settings.timeouts);
+
+                        updated = true;
 
                         break;
                     default:
                         break;
                 }
 
+                if (updated)
+                {
+                    Notify.Success(DebugMethod.Update, DebugObject.Spam_Settings, spam_setting.ToString(), message);
+                }               
+
                 JsonConvert.SerializeObject(master_settings, Formatting.Indented).OverrideFile(file_path_settings);
             }
-            catch(Exception ex)
+            catch(Exception exception)
             {
-                Debug.Error(DebugMethod.Update, DebugObject.Spam_Settings, DebugError.Exception);
-                Debug.PrintLine("Exception", ex.Message);
+                Notify.Error(DebugMethod.Update, DebugObject.Spam_Settings, spam_setting.ToString(), DebugError.Exception, message);
+
+                BotDebug.Error(DebugMethod.Update, DebugObject.Spam_Settings, DebugError.Exception);
+                BotDebug.PrintLine(nameof(exception), exception.Message);
             }
         }
 
-        private type ApplySetting<type>(object setting_new, object setting_current, string setting_name, string setting_preserialized)
+        private type ApplySetting<type>(object setting_new, object setting_current, string name, string setting_preserialized)
         {
             if(setting_new == setting_current)
             {
-                Debug.Notify("Warning: the new setting for \"" + setting_name + "\" is the same as the current setting. Setting not applied.");
+                BotDebug.Notify("Warning: the new setting for \"" + name + "\" is the same as the current setting. Setting not applied.");
 
                 return (type)setting_current;
             }
 
-            //"Check Syntax"
             if(setting_new is Enum)
             {
                 int size = Enum.GetNames(typeof(type)).Length - 1,
@@ -530,8 +775,8 @@ namespace TwitchChatBot.Chat
 
                 if (permission_value > size)
                 {
-                    Debug.SyntaxError(DebugObject.Spam_Settings, DebugObject.Setting, SyntaxError.EnumRange, size);
-                    Debug.PrintLine(setting_name, ((int)setting_new).ToString());
+                    BotDebug.SyntaxError(DebugObject.Spam_Settings, DebugObject.Setting, SyntaxError.EnumRange, size);
+                    BotDebug.PrintLine(name, setting_new.ToString());
 
                     return (type)setting_current;
                 }
@@ -539,13 +784,13 @@ namespace TwitchChatBot.Chat
 
             if(setting_new is int && (int)setting_new < 0)
             {
-                Debug.SyntaxError(DebugObject.Spam_Settings, DebugObject.Setting, SyntaxError.PositiveZero);
-                Debug.PrintLine(setting_name, ((int)setting_new).ToString());
+                BotDebug.SyntaxError(DebugObject.Spam_Settings, DebugObject.Setting, SyntaxError.PositiveZero);
+                BotDebug.PrintLine(name, ((int)setting_new).ToString());
 
                 return (type)setting_current;
             }
 
-            if (setting_preserialized.Contains("\"" + setting_name + "\":") && setting_new != null)
+            if (setting_preserialized.Contains("\"" + name + "\":"))
             {
                 return (type)setting_new;
             }
@@ -565,7 +810,7 @@ namespace TwitchChatBot.Chat
 
             SpamSettings setting = null;
 
-            chosen_setting = 
+            chosen_setting = spam_setting.ToString();
             preserialized = string.Empty;
 
             if (spam_setting == SpamSetting.timeouts)
@@ -613,10 +858,10 @@ namespace TwitchChatBot.Chat
                         break;
                 }
             }
-            catch(Exception ex)
+            catch(Exception exception)
             {
-                Debug.Error(DebugMethod.Serialize, DebugObject.Spam_Settings, DebugError.Exception);
-                Debug.PrintLine("Exception", ex.Message);
+                BotDebug.Error(DebugMethod.Serialize, DebugObject.Spam_Settings, DebugError.Exception);
+                BotDebug.PrintLine(nameof(exception), exception.Message);
             }
 
             return setting;  

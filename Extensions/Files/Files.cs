@@ -49,6 +49,7 @@ namespace TwitchChatBot.Extensions.Files
         /// </summary>
         /// <param name="str">String to remove.</param>
         /// <param name="path">Path to the text file.</param>
+        /// <param name="filter">Detemrines how to look for the lines of text to be removed. Default is <see cref="FileSearch.Exact"/>.</param>
         public static void RemoveFromFile(this string str, string path, FileSearch filter = FileSearch.Exact)
         {
             string temp_file = Path.GetTempFileName();

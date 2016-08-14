@@ -1,8 +1,10 @@
-﻿using System.IO;
+﻿using System;
 
 using RestSharp;
 
+using TwitchChatBot.Debugger;
 using TwitchChatBot.Enums.Chat;
+using TwitchChatBot.Enums.Debug;
 using TwitchChatBot.Extensions;
 using TwitchChatBot.Chat;
 using TwitchChatBot.Interfaces;
@@ -52,7 +54,7 @@ namespace TwitchChatBot.Clients
         /// <returns></returns>
         public Channel SetTitle(string channel, string status)
         {
-            RestRequest request = Request($"channels/{channel}", Method.PUT);
+            RestRequest request = Request("channels/{channel}", Method.PUT);
 
             request.AddUrlSegment("channel", channel);
             request.RequestFormat = DataFormat.Json;
@@ -72,7 +74,7 @@ namespace TwitchChatBot.Clients
         /// <returns></returns>
         public Channel SetGame(string channel, string game)
         {
-            RestRequest request = Request($"channels/{channel}", Method.PUT);
+            RestRequest request = Request("channels/{channel}", Method.PUT);
 
             request.AddUrlSegment("channel", channel);
             request.RequestFormat = DataFormat.Json;
@@ -93,7 +95,7 @@ namespace TwitchChatBot.Clients
         /// <returns></returns>
         public Channel SetDelay(string channel, string delay)
         {
-            RestRequest request = Request($"channels/{channel}", Method.PUT);
+            RestRequest request = Request("channels/{channel}", Method.PUT);
 
             request.AddUrlSegment("channel", channel);
             request.RequestFormat = DataFormat.Json;
@@ -106,31 +108,59 @@ namespace TwitchChatBot.Clients
 
         #region Chat commands
 
+        /// <summary>
+        /// Purges a user for 1 second.
+        /// </summary>
+        /// <param name="channel">User to purge.</param>
+        /// <param name="reason">Optional reason for the purge.</param>
         public void Purge(string channel, string reason = "")
         {
             connection.writer.WriteLine("PRIVMSG #{0} :{1}", name, ".timeout " + channel.ToLower() + " 1" + " " + reason);
         }
 
+        /// <summary>
+        /// Times out a user for a specified amount of time.
+        /// </summary>
+        /// <param name="channel">User to timeout.</param>
+        /// <param name="seconds">How long to time the user out for.</param>
+        /// <param name="reason">Optional reason for the timeout.</param>
         public void Timeout(string channel, int seconds, string reason = "")
         {
             connection.writer.WriteLine("PRIVMSG #{0} :{1}", name, ".timeout " + channel.ToLower() + " " + seconds.ToString() + " " + reason);
         }
 
+        /// <summary>
+        /// Bans a user.
+        /// </summary>
+        /// <param name="channel">User to be banned.</param>
+        /// <param name="reason">Optional reason for the ban.</param>
         public void Ban(string channel, string reason = "")
         {
             connection.writer.WriteLine("PRIVMSG #{0} :{1}", name, "/ban " + channel.ToLower() + " " + reason);
         }
 
+        /// <summary>
+        /// Unbans a user.
+        /// </summary>
+        /// <param name="channel">User to unban.</param>
         public void Unban(string channel)
         {
             connection.writer.WriteLine("PRIVMSG #{0} :{1}", name, "/unban " + channel.ToLower());
         }
 
+        /// <summary>
+        /// Mods a user.
+        /// </summary>
+        /// <param name="channel">User to mod.</param>
         public void Mod(string channel)
         {
             connection.writer.WriteLine("PRIVMSG #{0} :{1}", name, "/mod " + channel.ToLower());
         }
 
+        /// <summary>
+        /// Unmods a user.
+        /// </summary>
+        /// <param name="channel">User to unmod.</param>
         public void Unmod(string channel)
         {
             connection.writer.WriteLine("PRIVMSG #{0} :{1}", name, "/unmod " + channel.ToLower());
@@ -140,6 +170,11 @@ namespace TwitchChatBot.Clients
 
         #region Send messages or whispers
 
+        /// <summary>
+        /// Sends a message to the current chat room.
+        /// </summary>
+        /// <param name="room">Room to send the message to.</param>
+        /// <param name="message">Message to send.</param>
         public void SendMessage(string room, string message)
         {
             if (!room.CheckString() || !message.CheckString() || !connection.isConnected())
@@ -151,6 +186,11 @@ namespace TwitchChatBot.Clients
             connection.writer.Flush();
         }
 
+        /// <summary>
+        /// Sends a whisper to a specified user.
+        /// </summary>
+        /// <param name="recipient">Who to send the whisper to.</param>
+        /// <param name="whisper">The message to send to the user.</param>
         public void SendWhisper(string recipient, string whisper)
         {
             if (!whisper.CheckString() || !connection.isConnected())
@@ -162,6 +202,12 @@ namespace TwitchChatBot.Clients
             connection.writer.Flush();
         }
 
+        /// <summary>
+        /// Wrapper to either send a chat message or a whisper.
+        /// </summary>
+        /// <param name="message_type">The type of message to be sent.</param>
+        /// <param name="message">MEssage thaty contains the information in order to send the chat message or whisper</param>
+        /// <param name="message_or_whisper">The message to be sent as a whisper or a chat message.</param>
         public void SendResponse(MessageType message_type, Message message, string message_or_whisper)
         {
             if(message_type == MessageType.Chat)
@@ -172,6 +218,174 @@ namespace TwitchChatBot.Clients
             {
                 SendWhisper(message.sender.name, message_or_whisper);
             }
+        }
+
+        #endregion
+
+        #region  Command wrappers
+
+        /// <summary>
+        /// Gets the uptime of the OAuth User.
+        /// Called from Twitch by using <code>!uptime</code>.
+        /// </summary>
+        /// <returns></returns>
+        public string GetUpTime()
+        {
+            if (!isLive(name))
+            {
+                return display_name + " is currently offline";
+            }
+
+            string total_time, prefix;
+
+            TimeSpan time = GetUpTime(display_name);
+
+            string hours = time.Hours.GetTimeString("hour"),
+                   minutes = time.Minutes.GetTimeString("minute"),
+                   seconds = time.Seconds.GetTimeString("second");
+
+            prefix = display_name + " has been streaming for ";
+
+            //hours does not have a value
+            if (!hours.CheckString())
+            {
+                //(0, 0, 0)
+                if (!minutes.CheckString() && !seconds.CheckString())
+                {
+                    total_time = "currently offline";
+                }
+                //(0, 0, 1)
+                else if (!minutes.CheckString() && seconds.CheckString())
+                {
+                    total_time = seconds;
+                }
+                //(0, 1, 0)
+                else if (minutes.CheckString() && !seconds.CheckString())
+                {
+                    total_time = minutes;
+                }
+                //(0, 1, 1)
+                else
+                {
+                    total_time = minutes + " and " + seconds;
+                }
+            }
+            //hours has a value
+            else
+            {
+                //(1, 0, 0)
+                if (!minutes.CheckString() && !seconds.CheckString())
+                {
+                    total_time = hours;
+                }
+                //(1, 0, 1)
+                else if (!minutes.CheckString() && seconds.CheckString())
+                {
+                    total_time = hours + " and " + seconds;
+                }
+                //(1, 1, 0)
+                else if (minutes.CheckString() && !seconds.CheckString())
+                {
+                    total_time = hours + " and " + minutes;
+                }
+                //(1, 1, 1)
+                else
+                {
+                    total_time = hours + ", " + minutes + ", and " + seconds;
+                }
+            }
+
+            return prefix + total_time;
+        }
+
+        /// <summary>
+        /// Updates the broadcaster's game, title, or stream delay.
+        /// Note: The broadcaster must be a partner to set a delay.
+        /// Requires the "channel_editor" scope.
+        /// </summary>
+        /// <param name="settings">Stream setting to update.</param>
+        /// <param name="commands">Parses the body of a <see cref="Message"/> after the command and returns a <see cref="string"/>.</param>
+        /// <param name="message">The message to be parsed for the new stream setting.</param>
+        public void UpdateStream(StreamSetting settings, Commands commands, Message message)
+        {
+            string setting = settings.ToString(),
+                   value = commands.ParseCommandString(message);
+
+            DebugObject debug_setting;
+
+            Enum.TryParse(setting, out debug_setting);
+
+            if (!value.CheckString())
+            {
+                Notify.Error(DebugMethod.Update, DebugObject.Setting, setting, DebugError.Null, message);
+
+                BotDebug.Error(DebugMethod.Update, debug_setting, DebugError.Null);
+                BotDebug.PrintLine("stream setting", setting.ToString());
+
+                return;
+            }
+
+            if (settings == StreamSetting.Delay)
+            {
+                if (!value.CanCovertTo<double>())
+                {
+                    Notify.Error(DebugMethod.Update, DebugObject.Setting, setting, DebugError.Convert, message);
+
+                    BotDebug.Error(DebugMethod.Update, debug_setting, DebugError.Convert);
+                    BotDebug.PrintLine(nameof(value), value);
+                    BotDebug.PrintLine(nameof(value) + " type", value.GetType().Name.ToLower());
+                    BotDebug.PrintLine("supported type", typeof(double).Name);
+
+                    return;
+                }
+
+                if (!isPartner(name))
+                {
+                    Notify.SendWhisper(message, "Failed to update the " + setting + ": " + name + " is not a partner");
+
+                    BotDebug.Error("Failed to update the " + setting + ": " + name + " is not a partner");
+
+                    return;
+                }
+            }
+
+            try
+            {
+                switch (settings)
+                {
+                    case StreamSetting.Delay:
+                        SetDelay(display_name.ToLower(), value);
+
+                        value = GetChannel(display_name).delay.ToString();
+                        break;
+                    case StreamSetting.Game:
+                        SetGame(display_name.ToLower(), value);
+
+                        value = GetChannel(display_name).game;
+                        break;
+                    case StreamSetting.Title:
+                        SetTitle(display_name.ToLower(), value);
+
+                        value = GetChannel(display_name).status;
+                        break;
+                    default:
+                        break;
+                }
+
+                Notify.Success(DebugMethod.Update, DebugObject.Setting, setting, message);
+
+                BotDebug.Success(DebugMethod.Update, debug_setting, setting);
+                BotDebug.PrintLine(nameof(display_name), display_name);
+                BotDebug.PrintLine(nameof(value), value);
+            }
+            catch(Exception exception)
+            {
+                Notify.Error(DebugMethod.Update, DebugObject.Setting, setting, DebugError.Exception, message);
+
+                BotDebug.Error(DebugMethod.Update, DebugObject.Setting, DebugError.Exception);
+                BotDebug.PrintLine(nameof(setting), setting);
+                BotDebug.PrintLine(nameof(exception), exception.Message);
+            }            
         }
 
         #endregion

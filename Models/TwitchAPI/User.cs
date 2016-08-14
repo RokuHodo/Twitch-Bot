@@ -17,6 +17,9 @@ namespace TwitchChatBot.Models.TwitchAPI
         [JsonProperty("updated_at")]
         public DateTime updated_at { get; set; }
 
+        [JsonProperty("_links")]
+        public Links _links { get; set; }
+
         [JsonProperty("logo")]
         public string logo { get; set; }
 

@@ -66,5 +66,8 @@ namespace TwitchChatBot.Models.TwitchAPI
 
         [JsonProperty("followers")]
         public int followers { get; set; }
+
+        [JsonProperty("_links")]
+        public Links _links { get; set; }
     }
 }

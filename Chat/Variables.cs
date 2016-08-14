@@ -15,29 +15,31 @@ namespace TwitchChatBot.Chat
 {
     class Variables
     {
-        //indicates the bounds to parse between to find a variable 
         char lower_variable_indicator = '[',
              upper_variable_indicator = ']',
              lower_variable_search = '(',
              upper_variable_search = ')';
 
-        string file_path = Environment.CurrentDirectory + "/JSON/Chat/Variables.json";
+        readonly string file_path = Environment.CurrentDirectory + "/JSON/Chat/Variables.json";
 
-        List<Variable> variables_list = new List<Variable>();
+        List<Variable> variables_list;
 
-        Dictionary<string, Variable> variables_dictionary = new Dictionary<string, Variable>();
+        Dictionary<string, Variable> variables_dictionary;
 
         public Variables()
         {
             string variables_preloaded;
 
+            variables_list = new List<Variable>();
+            variables_dictionary = new Dictionary<string, Variable>();
+
             List<Variable> variables_preloaded_list;
 
-            Debug.BlankLine();
+            BotDebug.BlankLine();
 
-            Debug.BlockBegin();
-            Debug.Header("Loading Variables");
-            Debug.PrintLine("File path:", file_path);
+            BotDebug.BlockBegin();
+            BotDebug.Header("Loading Variables");
+            BotDebug.PrintLine("File path:", file_path);
 
             variables_preloaded = File.ReadAllText(file_path);
             variables_preloaded_list = JsonConvert.DeserializeObject<List<Variable>>(variables_preloaded);
@@ -50,7 +52,7 @@ namespace TwitchChatBot.Chat
                 }
             }
 
-            Debug.BlockEnd();
+            BotDebug.BlockEnd();
         }
 
         #region Load variables
@@ -61,21 +63,21 @@ namespace TwitchChatBot.Chat
         /// <param name="variable">The variable to load.</param>
         private void Load(Variable variable)
         {
-            Debug.BlankLine();
-            Debug.SubHeader("Loading variable...");
+            BotDebug.BlankLine();
+            BotDebug.SubHeader("Loading variable...");
 
-            if (!CheckSyntax(variable.key, variable.value))
+            if (!CheckSyntax(variable))
             {
-                Debug.Error(DebugMethod.Load, DebugObject.Variable, DebugError.Syntax);
-                Debug.PrintObject(variable);
+                BotDebug.Error(DebugMethod.Load, DebugObject.Variable, DebugError.Syntax);
+                BotDebug.PrintObject(variable);
 
                 return;
             }
 
             if (Exists(variable.key))
             {
-                Debug.Error(DebugMethod.Load, DebugObject.Variable, DebugError.ExistYes);
-                Debug.PrintLine("key:", variable.key);
+                BotDebug.Error(DebugMethod.Load, DebugObject.Variable, DebugError.ExistYes);
+                BotDebug.PrintLine(nameof(variable.key), variable.key);
 
                 return;
             }
@@ -85,16 +87,14 @@ namespace TwitchChatBot.Chat
                 variables_list.Add(variable);
                 variables_dictionary.Add(variable.key, variable);
 
-                Debug.Success(DebugMethod.Load, DebugObject.Variable, variable.key);
-                Debug.PrintObject(variable);
+                BotDebug.Success(DebugMethod.Load, DebugObject.Variable, variable.key);
+                BotDebug.PrintObject(variable);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Debug.Error(DebugMethod.Load, DebugObject.Variable, DebugError.Exception);
-                Debug.PrintLine("key:", variable.key);
-                Debug.PrintLine("Exception:", ex.Message);
-
-                return;
+                BotDebug.Error(DebugMethod.Load, DebugObject.Variable, DebugError.Exception);
+                BotDebug.PrintLine(nameof(variable.key), variable.key);
+                BotDebug.PrintLine(nameof(exception), exception.Message);
             }
         }
 
@@ -103,24 +103,55 @@ namespace TwitchChatBot.Chat
         #region Add, Edit, and Remove variables
 
         /// <summary>
-        /// Parses the body of a <see cref="Message"/> for a command and attempts to add the specified command.
-        /// Called from Twitch by using <code>!addvariable</code>.
+        /// Modify the variables by adding, editting, or removing.
         /// </summary>
-        /// <param name="commands">Parses the body of a <see cref="Message"/> after the command and returns a <see cref="string"/> to be processed as a <see cref="Variable"/>.</param>
+        /// <param name="commands">Used for parsing the body.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        public void Add(Commands commands, Message message)
+        public void Modify(Commands commands, Message message)
         {
-            Debug.BlankLine();
-            Debug.SubHeader("Adding variable...");
+            string temp = commands.ParseCommandString(message),
+                   key = temp.TextBefore(" ");
 
-            Variable variable = MessageToVariable(DebugMethod.Add, commands, message);
+            message.body = temp.TextAfter(" ");
 
-            if (variable == null)
+            try
             {
-                return;
+                switch (key)
+                {
+                    case "!add":
+                        Add(commands, message);
+                        break;
+                    case "!edit":
+                        Edit(message);
+                        break;
+                    case "!remove":
+                        Remove(message);
+                        break;
+                    default:
+                        break;
+                }
             }
+            catch (Exception exception)
+            {
+                BotDebug.Error(DebugMethod.Modify, DebugObject.Variable, DebugError.Exception);
+                BotDebug.PrintLine(nameof(exception), exception.Message);
+                BotDebug.PrintLine(nameof(temp), temp);
+                BotDebug.PrintLine(nameof(key), key);
+                BotDebug.PrintLine(nameof(message.body), message.body);
+            }
+        }
 
-            Add(variable, message);
+        private void Add(Commands commands, Message message)
+        {
+            BotDebug.BlankLine();
+            BotDebug.SubHeader("Adding variable...");
+
+            Variable variable = MessageToVariable(DebugMethod.Add, message);
+
+            if(variable != default(Variable))
+            {
+                Add(variable, message);
+            }            
         }
 
         /// <summary>
@@ -129,23 +160,28 @@ namespace TwitchChatBot.Chat
         /// <param name="variable">Variable to be added</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         public void Add(Variable variable, Message message)
-        {                                  
-            if (!CheckSyntax(variable.key, variable.value))
+        {           
+            if (variable == default(Variable))
             {
-                Notify.Failed(DebugMethod.Add, DebugObject.Variable, variable.key, DebugError.Syntax, message);
+                return;
+            }
 
-                Debug.Error(DebugMethod.Add, DebugObject.Variable, DebugError.Syntax);
-                Debug.PrintObject(variable);
+            if (!CheckSyntax(variable))
+            {
+                Notify.Error(DebugMethod.Add, DebugObject.Variable, variable.key, DebugError.Syntax, message);
+
+                BotDebug.Error(DebugMethod.Add, DebugObject.Variable, DebugError.Syntax);
+                BotDebug.PrintObject(variable);
 
                 return;
             }
 
             if (Exists(variable.key))
             {
-                Notify.Failed(DebugMethod.Add, DebugObject.Variable, variable.key, DebugError.ExistYes, message);
+                Notify.Error(DebugMethod.Add, DebugObject.Variable, variable.key, DebugError.ExistYes, message);
 
-                Debug.Error(DebugMethod.Add, DebugObject.Variable, DebugError.ExistYes);
-                Debug.PrintLine("key:", variable.key);
+                BotDebug.Error(DebugMethod.Add, DebugObject.Variable, DebugError.ExistYes);
+                BotDebug.PrintLine(nameof(variable.key), variable.key);
 
                 return;
             }
@@ -159,40 +195,17 @@ namespace TwitchChatBot.Chat
 
                 Notify.Success(DebugMethod.Add, DebugObject.Variable, variable.key, message);
 
-                Debug.Success(DebugMethod.Add, DebugObject.Variable, variable.key);
-                Debug.PrintObject(variable);
+                BotDebug.Success(DebugMethod.Add, DebugObject.Variable, variable.key);
+                BotDebug.PrintObject(variable);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Notify.Failed(DebugMethod.Add, DebugObject.Variable, variable.key, DebugError.Exception, message);
+                Notify.Error(DebugMethod.Add, DebugObject.Variable, variable.key, DebugError.Exception, message);
 
-                Debug.Error(DebugMethod.Add, DebugObject.Variable, DebugError.Exception);
-                Debug.PrintLine("key:", variable.key);
-                Debug.PrintLine("Exception:", ex.Message);
-
-                return;
+                BotDebug.Error(DebugMethod.Add, DebugObject.Variable, DebugError.Exception);
+                BotDebug.PrintLine(nameof(variable.key), variable.key);
+                BotDebug.PrintLine(nameof(exception), exception.Message);
             }
-        }
-
-        /// <summary>
-        /// Parses the body of a <see cref="Message"/> for a command and attempts to edit the specified command.
-        /// Called from Twitch by using <code>!editvariable</code>.
-        /// </summary>
-        /// <param name="commands">Parses the body of a <see cref="Message"/> after the command and returns a <see cref="string"/> to be processed as a <see cref="Variable"/>.</param>
-        /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        public void Edit(Commands commands, Message message)
-        {
-            Debug.BlankLine();
-            Debug.SubHeader("Editing variable...");
-
-            Variable variable = MessageToVariable(DebugMethod.Edit, commands, message);
-
-            if (variable == null)
-            {
-                return;
-            }
-
-            Edit(variable, message);
         }
 
         /// <summary>
@@ -200,15 +213,25 @@ namespace TwitchChatBot.Chat
         /// </summary>
         /// <param name="variable">Variable key to be edited.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        private void Edit(Variable variable, Message message)
+        private void Edit(Message message)
         {
-            //check to see if the variable and value have the correct syntax
-            if (!CheckSyntax(variable.key, variable.value))
-            {
-                Notify.Failed(DebugMethod.Edit, DebugObject.Variable, variable.key, DebugError.Syntax, message);
+            BotDebug.BlankLine();
+            BotDebug.SubHeader("Editing variable...");
 
-                Debug.Error(DebugMethod.Edit, DebugObject.Variable, DebugError.Syntax);
-                Debug.PrintObject(variable);
+            Variable variable = MessageToVariable(DebugMethod.Edit, message);
+
+            if (variable == default(Variable))
+            {
+                return;
+            }
+
+            //check to see if the variable and value have the correct syntax
+            if (!CheckSyntax(variable))
+            {
+                Notify.Error(DebugMethod.Edit, DebugObject.Variable, variable.key, DebugError.Syntax, message);
+
+                BotDebug.Error(DebugMethod.Edit, DebugObject.Variable, DebugError.Syntax);
+                BotDebug.PrintObject(variable);
 
                 return;
             }
@@ -216,10 +239,10 @@ namespace TwitchChatBot.Chat
             //make sure the variable exists
             if (!Exists(variable.key))
             {
-                Notify.Failed(DebugMethod.Edit, DebugObject.Variable, variable.key, DebugError.ExistNo, message);
+                Notify.Error(DebugMethod.Edit, DebugObject.Variable, variable.key, DebugError.ExistNo, message);
 
-                Debug.Error(DebugMethod.Edit, DebugObject.Variable, DebugError.ExistNo);
-                Debug.PrintLine("key:", variable.key);
+                BotDebug.Error(DebugMethod.Edit, DebugObject.Variable, DebugError.ExistNo);
+                BotDebug.PrintLine(nameof(variable.key), variable.key);
 
                 return;
             }
@@ -235,38 +258,17 @@ namespace TwitchChatBot.Chat
 
                 Notify.Success(DebugMethod.Edit, DebugObject.Variable, variable.key, message);
 
-                Debug.Success(DebugMethod.Edit, DebugObject.Variable, variable.key);
-                Debug.PrintObject(variable);
+                BotDebug.Success(DebugMethod.Edit, DebugObject.Variable, variable.key);
+                BotDebug.PrintObject(variable);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Notify.Failed(DebugMethod.Edit, DebugObject.Variable, variable.key, DebugError.Exception, message);
+                Notify.Error(DebugMethod.Edit, DebugObject.Variable, variable.key, DebugError.Exception, message);
 
-                Debug.Error(DebugMethod.Edit, DebugObject.Variable, DebugError.Exception);
-                Debug.PrintLine("key:", variable.key);
-                Debug.PrintLine("Exception: ", ex.Message);
+                BotDebug.Error(DebugMethod.Edit, DebugObject.Variable, DebugError.Exception);
+                BotDebug.PrintLine(nameof(variable.key), variable.key);
+                BotDebug.PrintLine(nameof(exception), exception.Message);
             }
-        }
-
-        /// <summary>
-        /// Parses the body of a <see cref="Message"/> for a variable and attempts to remove the specified variable.
-        /// Called from Twitch by using <code>!removevariable</code>.
-        /// </summary>
-        /// <param name="commands">Parses the body of a <see cref="Message"/> after the command and returns a <see cref="string"/> to be processed as a <see cref="Variable"/>.</param>
-        /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        public void Remove(Commands commands, Message message)
-        {
-            Debug.BlankLine();
-            Debug.SubHeader("Removing variable...");
-
-            Variable variable = MessageToVariable(DebugMethod.Remove, commands, message);
-
-            if (variable == null)
-            {
-                return;
-            }
-
-            Remove(variable, message);
         }
 
         /// <summary>
@@ -274,14 +276,24 @@ namespace TwitchChatBot.Chat
         /// </summary>
         /// <param name="variable">Variable key to be removed.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        private void Remove(Variable variable, Message message)
+        private void Remove(Message message)
         {
+            BotDebug.BlankLine();
+            BotDebug.SubHeader("Removing variable...");
+
+            Variable variable = MessageToVariable(DebugMethod.Remove, message);
+
+            if (variable == default(Variable))
+            {
+                return;
+            }
+
             if (!Exists(variable.key))
             {
-                Notify.Failed(DebugMethod.Remove, DebugObject.Variable, variable.key, DebugError.ExistNo, message);
+                Notify.Error(DebugMethod.Remove, DebugObject.Variable, variable.key, DebugError.ExistNo, message);
 
-                Debug.Error(DebugMethod.Remove, DebugObject.Variable, DebugError.ExistNo);
-                Debug.PrintLine("key:", variable.key);
+                BotDebug.Error(DebugMethod.Remove, DebugObject.Variable, DebugError.ExistNo);
+                BotDebug.PrintLine(nameof(variable.key), variable.key);
 
                 return;
             }
@@ -295,17 +307,16 @@ namespace TwitchChatBot.Chat
 
                 Notify.Success(DebugMethod.Remove, DebugObject.Variable, variable.key, message);
 
-                Debug.Success(DebugMethod.Remove, DebugObject.Variable, variable.key);
-                Debug.PrintObject(variable);
+                BotDebug.Success(DebugMethod.Remove, DebugObject.Variable, variable.key);
+                BotDebug.PrintObject(variable);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                //shit hit the fan
-                Notify.Failed(DebugMethod.Remove, DebugObject.Variable, variable.key, DebugError.Exception, message);
+                Notify.Error(DebugMethod.Remove, DebugObject.Variable, variable.key, DebugError.Exception, message);
 
-                Debug.Error(DebugMethod.Remove, DebugObject.Variable, DebugError.Exception);
-                Debug.PrintLine("key:", variable.key);
-                Debug.PrintLine("Exception:", ex.Message);
+                BotDebug.Error(DebugMethod.Remove, DebugObject.Variable, DebugError.Exception);
+                BotDebug.PrintLine(nameof(variable.key), variable.key);
+                BotDebug.PrintLine(nameof(exception), exception.Message);
             }
         }
 
@@ -326,96 +337,92 @@ namespace TwitchChatBot.Chat
         /// <summary>
         /// Checks to see if the variable and value match the proper syntax.
         /// </summary>
-        /// <param name="variable">Variable key to be checked.</param>
-        /// <param name="value">Value to be checked.</param>
+        /// <param name="variable">Variable to be checked for proper syntax.</param>
         /// <returns></returns>
-        private bool CheckSyntax(string variable, string value)
+        private bool CheckSyntax(Variable variable)
         {
             //check to see if the strings are null
-            if (!variable.CheckString())
+            if (!variable.key.CheckString())
             {
-                Debug.SyntaxError(DebugObject.Variable, DebugObject.Variable, SyntaxError.Null);
-                Debug.PrintLine("key:", "null");
+                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Variable, SyntaxError.Null);
+                BotDebug.PrintLine(nameof(variable.key), "null");
 
                 return false;
             }
 
-            if (!value.CheckString())
+            if (!variable.value.CheckString())
             {
-                Debug.SyntaxError(DebugObject.Variable, DebugObject.Value, SyntaxError.Null);
-                Debug.PrintLine("key:", variable);
-                Debug.PrintLine("value:", value);
+                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Value, SyntaxError.Null);
+                BotDebug.PrintObject(variable);
 
                 return false;
             }
 
             //check to see if the key is wrapped in the indicators
-            if (!variable.StartsWith(lower_variable_indicator.ToString()) || !variable.EndsWith(upper_variable_indicator.ToString()))
+            if (!variable.key.StartsWith(lower_variable_indicator.ToString()) || !variable.key.EndsWith(upper_variable_indicator.ToString()))
             {
-                Debug.SyntaxError(DebugObject.Variable, DebugObject.Variable, SyntaxError.SquareBracketsYes);
-                Debug.PrintLine("key:", variable);
+                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Variable, SyntaxError.SquareBracketsYes);
+                BotDebug.PrintLine(nameof(variable.key), variable.key);
 
                 return false;
             }                                   
 
-            string _variable = variable.Substring(1, variable.Length - 2);
+            string _variable = variable.key.Substring(1, variable.key.Length - 2);
 
             //check for illegal characters in the key
             if (_variable.Contains("{") || _variable.Contains("}"))
             {
-                Debug.SyntaxError(DebugObject.Variable, DebugObject.Variable, SyntaxError.BracketsNo);
-                Debug.PrintLine("key:", variable);
+                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Variable, SyntaxError.BracketsNo);
+                BotDebug.PrintLine(nameof(variable.key), variable.key);
 
                 return false;
             }
 
             if (_variable.Contains(lower_variable_indicator.ToString()) || _variable.Contains(upper_variable_indicator.ToString()))
             {
-                Debug.SyntaxError(DebugObject.Variable, DebugObject.Variable, SyntaxError.SquareBracketsNo);
-                Debug.PrintLine("key:", variable);
+                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Variable, SyntaxError.SquareBracketsNo);
+                BotDebug.PrintLine(nameof(variable.key), variable.key);
 
                 return false;
             }
 
             if (_variable.Contains(lower_variable_search.ToString()) || _variable.Contains(upper_variable_search.ToString()))
             {
-                Debug.SyntaxError(DebugObject.Variable, DebugObject.Variable, SyntaxError.ParenthesisNo);
-                Debug.PrintLine("key:", variable);
+                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Variable, SyntaxError.ParenthesisNo);
+                BotDebug.PrintLine(nameof(variable.key), variable.key);
 
                 return false;
             }
 
             if (_variable.Contains(" "))
             {
-                Debug.SyntaxError(DebugObject.Variable, DebugObject.Value, SyntaxError.Spaces);
-                Debug.PrintLine("key:", variable);
+                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Value, SyntaxError.Spaces);
+                BotDebug.PrintLine(nameof(variable.key), variable.key);
 
                 return false;
             }
 
             //check for illegal characters in the value
-            if (value.Contains("{") || value.Contains("}"))
+            if (variable.value.Contains("{") || variable.value.Contains("}"))
             {
-                Debug.SyntaxError(DebugObject.Variable, DebugObject.Value, SyntaxError.BracketsNo);
-                Debug.PrintLine("key:", variable);
+                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Value, SyntaxError.BracketsNo);
+                BotDebug.PrintObject(variable);
 
                 return false;
             }
 
-            if (value.Contains(lower_variable_indicator.ToString()) || value.Contains(upper_variable_indicator.ToString()))
+            if (variable.value.Contains(lower_variable_indicator.ToString()) || variable.value.Contains(upper_variable_indicator.ToString()))
             {
-                Debug.SyntaxError(DebugObject.Variable, DebugObject.Value, SyntaxError.SquareBracketsNo);
-                Debug.PrintLine("key:", variable);
-                Debug.PrintLine("value:", value);
+                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Value, SyntaxError.SquareBracketsNo);
+                BotDebug.PrintObject(variable);
 
                 return false;
             }
 
-            if (value.Contains(lower_variable_search.ToString()) || value.Contains(upper_variable_search.ToString()))
+            if (variable.value.Contains(lower_variable_search.ToString()) || variable.value.Contains(upper_variable_search.ToString()))
             {
-                Debug.SyntaxError(DebugObject.Variable, DebugObject.Value, SyntaxError.ParenthesisNo);
-                Debug.PrintLine("key:", variable);
-                Debug.PrintLine("value:", value);
+                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Value, SyntaxError.ParenthesisNo);
+                BotDebug.PrintObject(variable);
 
                 return false;
             }            
@@ -429,47 +436,49 @@ namespace TwitchChatBot.Chat
 
         /// <summary>
         /// Converts a message recieved from Twitch into a <see cref="Variable"/> and returns the variable.
-        /// Returns null if the message could not be converted to a <see cref="Variable"/>.
+        /// Returns default <see cref="Variable"/> if the message could not be converted.
         /// </summary>
-        /// <param name="debug_method">The type of operation being performed.</param>
+        /// <param name="method">The type of operation being performed.</param>
         /// <param name="commands">Parses the body of a <see cref="Message"/> after the command and returns a <see cref="string"/> to be processed as a <see cref="Variable"/>.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         /// <returns></returns>
-        private Variable MessageToVariable(DebugMethod debug_method, Commands commands, Message message)
+        private Variable MessageToVariable(DebugMethod method, Message message)
         {
-            string variable_string;
+            string variable_string = message.body;
 
-            variable_string = commands.ParseCommandString(message);
             variable_string = variable_string.PreserializeAs<string>();
 
             try
             {
                 Variable variable = JsonConvert.DeserializeObject<Variable>(variable_string);
 
-                Debug.Success(DebugMethod.Serialize, DebugObject.Command, variable.key);
-                Debug.PrintObject(variable);
+                BotDebug.Success(DebugMethod.Serialize, DebugObject.Command, variable.key);
+                BotDebug.PrintObject(variable);
 
                 return variable;
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Debug.Error(DebugMethod.Serialize, DebugObject.Variable, DebugError.Exception);
-                Debug.Error(debug_method, DebugObject.Variable, DebugError.Null);
-                Debug.PrintLine("key:", variable_string);
-                Debug.PrintLine("Exception:", ex.Message);
+                Notify.Error(method, DebugObject.Variable, variable_string, DebugError.Exception, message);
 
-                return null;
+                BotDebug.Error(DebugMethod.Serialize, DebugObject.Variable, DebugError.Exception);
+                BotDebug.Error(method, DebugObject.Variable, DebugError.Null);
+                BotDebug.PrintLine(nameof(variable_string), variable_string);
+                BotDebug.PrintLine(nameof(exception), exception.Message);
+
+                return default(Variable);
             }
         }
 
         /// <summary>
         /// Converts a custom string into a <see cref="Variable"/> and returns the variable.
-        /// Returns null if the message could not be converted to a <see cref="Variable"/>.
+        /// Called from <see cref="ExtractVariables(string, Message, out Variable[])"/>.
+        /// Returns default <see cref="Variable"/> if the message could not be converted.
         /// </summary>
-        /// <param name="debug_method">The type of operation being performed.</param>
-        /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
+        /// <param name="method">The type of operation being performed.</param>
+        /// <param name="variable_string">The string to be converted and serialized into a variable</param>
         /// <returns></returns>
-        private Variable MessageToVariable(DebugMethod debug_method, string variable_string)
+        private Variable MessageToVariable(DebugMethod method, Message message, string variable_string)
         {
             variable_string = variable_string.PreserializeAs<string>();
 
@@ -477,30 +486,34 @@ namespace TwitchChatBot.Chat
             {
                 Variable variable = JsonConvert.DeserializeObject<Variable>(variable_string);
 
-                Debug.Success(DebugMethod.Serialize, DebugObject.Command, variable.key);
-                Debug.PrintObject(variable);
+                BotDebug.Success(DebugMethod.Serialize, DebugObject.Command, variable.key);
+                BotDebug.PrintObject(variable);
 
                 return variable;
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Debug.Error(DebugMethod.Serialize, DebugObject.Variable, DebugError.Exception);
-                Debug.Error(debug_method, DebugObject.Variable, DebugError.Null);
-                Debug.PrintLine("key:", variable_string);
-                Debug.PrintLine("Exception:", ex.Message);
+                Notify.Error(method, DebugObject.Variable, variable_string, DebugError.Exception, message);
 
-                return null;
+                BotDebug.Error(DebugMethod.Serialize, DebugObject.Variable, DebugError.Exception);
+                BotDebug.Error(method, DebugObject.Variable, DebugError.Null);
+                BotDebug.PrintLine(nameof(variable_string), variable_string);
+                BotDebug.PrintLine(nameof(exception), exception.Message);
+
+                return default(Variable);
             }
         }
 
         /// <summary>
         /// Loops through the body of the <see cref="Message"/> and attempts to add any variables found.
+        /// Returns the new message body with the successfully extracted varibale keys.
         /// </summary>
-        /// <param name="body">Body of the <see cref="Message"/> to be processed</param>
+        /// <param name="response">The body of the <see cref="Message"/> to be parsed for variables to be extracted.</param>
+        /// <param name="variable_array">An array off all the extracted and serialized <see cref="Variable"/>.</param>
         /// <returns></returns>
         public string ExtractVariables(string response, Message message, out Variable[] variable_array)
         {
-            string extracted_variable = "";
+            string extracted_variable = string.Empty;
 
             Variable variable;
 
@@ -519,17 +532,16 @@ namespace TwitchChatBot.Chat
 
                 try
                 {                    
-                    variable = MessageToVariable(DebugMethod.Add, extracted_variable);
-
+                    variable = MessageToVariable(DebugMethod.Add, message, extracted_variable);
                     response = response.Replace(lower_variable_search + extracted_variable + upper_variable_search, variable.key);
 
                     list.Add(variable);
                 }
-                catch(Exception ex)
+                catch(Exception exception)
                 {
-                    Debug.Error(DebugMethod.Add, DebugObject.Variable, DebugError.Exception);
-                    Debug.PrintLine("key:", extracted_variable);
-                    Debug.PrintLine("Exception:", ex.Message);
+                    BotDebug.Error(DebugMethod.Add, DebugObject.Variable, DebugError.Exception);
+                    BotDebug.PrintLine(nameof(extracted_variable), extracted_variable);
+                    BotDebug.PrintLine(nameof(exception), exception.Message);
                 }
 
                 ++index;

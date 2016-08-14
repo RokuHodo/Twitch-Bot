@@ -61,8 +61,9 @@ namespace TwitchChatBot.Clients
         /// </summary>
         public void Connect()
         {
-            Console.WriteLine();
-            Debug.Notify($"Connecting to the {connection.ToString()} server..." + Environment.NewLine);
+            BotDebug.BlankLine();
+            BotDebug.Notify("Connecting to the " + connection.ToString() + " server...");
+            BotDebug.BlankLine();
 
             tcp_Client = new TcpClient(ip_address, port);
 

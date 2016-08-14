@@ -31,5 +31,11 @@ namespace TwitchChatBot.Models.TwitchAPI
 
         [JsonProperty("channel")]
         public Channel channel { get; set; }
+
+        [JsonProperty("preview")]
+        public Preview preview { get; set; }
+
+        [JsonProperty("_links")]
+        public Links _links { get; set; }
     }
 }
