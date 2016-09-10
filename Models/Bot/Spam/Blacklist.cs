@@ -1,10 +1,9 @@
-﻿using System.Collections.Generic;
-
+﻿
 using Newtonsoft.Json;
 
-using TwitchChatBot.Enums.Chat;
+using TwitchBot.Enums.Chat;
 
-namespace TwitchChatBot.Models.Bot
+namespace TwitchBot.Models.Bot.Spam
 {
     class Blacklist
     {

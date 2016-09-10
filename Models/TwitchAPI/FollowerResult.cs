@@ -2,7 +2,7 @@
 
 using Newtonsoft.Json;
 
-namespace TwitchChatBot.Models.TwitchAPI
+namespace TwitchBot.Models.TwitchAPI
 {
     class FollowerResult
     {

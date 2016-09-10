@@ -2,9 +2,9 @@
 
 using Newtonsoft.Json;
 
-using TwitchChatBot.Enums.Chat;
+using TwitchBot.Enums.Chat;
 
-namespace TwitchChatBot.Models.Bot
+namespace TwitchBot.Models.Bot.Chat
 {
     class Command
     {
@@ -24,7 +24,7 @@ namespace TwitchChatBot.Models.Bot
         public CommandType type { get; set; }
 
         [JsonProperty("cooldown")]
-        public double cooldown { get; set; }
+        public int cooldown { get; set; }
 
         [JsonProperty("last_used")]
         public DateTime last_used { get; set; }

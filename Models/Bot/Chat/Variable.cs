@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace TwitchChatBot.Models.Bot
+namespace TwitchBot.Models.Bot.Chat
 {
     [JsonObject("Variable")]
     class Variable

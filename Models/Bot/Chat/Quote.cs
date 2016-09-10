@@ -2,7 +2,7 @@
 
 using Newtonsoft.Json;
 
-namespace TwitchChatBot.Models.Bot
+namespace TwitchBot.Models.Bot.Chat
 {
     [JsonObject("Quote")]
     class Quote
