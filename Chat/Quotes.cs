@@ -4,15 +4,14 @@ using System.IO;
 
 using Newtonsoft.Json;
 
-using TwitchChatBot.Enums.Debug;
-using TwitchChatBot.Clients;
-using TwitchChatBot.Debugger;
-using TwitchChatBot.Enums.Extensions;
-using TwitchChatBot.Extensions;
-using TwitchChatBot.Extensions.Files;
-using TwitchChatBot.Models.Bot;
+using TwitchBot.Clients;
+using TwitchBot.Debugger;
+using TwitchBot.Enums.Extensions;
+using TwitchBot.Extensions;
+using TwitchBot.Extensions.Files;
+using TwitchBot.Models.Bot.Chat;
 
-namespace TwitchChatBot.Chat
+namespace TwitchBot.Chat
 {
     class Quotes
     {
@@ -28,11 +27,11 @@ namespace TwitchChatBot.Chat
 
             List<Quote> quotes_preloaded_list;
 
-            BotDebug.BlankLine();
+            DebugBot.BlankLine();
 
-            BotDebug.BlockBegin();
-            BotDebug.Header("Loading Quotes");
-            BotDebug.PrintLine("File path:", FILE_PATH);
+            DebugBot.BlockBegin();
+            DebugBot.Header("Loading Quotes");
+            DebugBot.PrintLine("File path:", FILE_PATH);
 
             quotes_preloaded = File.ReadAllText(FILE_PATH);
             quotes_preloaded_list = JsonConvert.DeserializeObject<List<Quote>>(quotes_preloaded);
@@ -45,7 +44,7 @@ namespace TwitchChatBot.Chat
                 }
             }
 
-            BotDebug.BlockEnd();
+            DebugBot.BlockEnd();
         }
 
         #region Load quotes
@@ -56,11 +55,21 @@ namespace TwitchChatBot.Chat
         /// <param name="command">The command to load.</param>
         private void Load(Quote quote)
         {
-            BotDebug.BlankLine();
-            BotDebug.SubHeader("Loading quote...");
+            DebugBot.BlankLine();
+            DebugBot.SubHeader("Loading quote...");
 
-            if (!CheckSyntax(DebugMethod.Load, quote) || Exists(DebugMethod.Load, quote))
-            {               
+            if (quote == default(Quote))
+            {
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.LOAD, nameof(quote), DebugError.NORMAL_EXCEPTION);
+
+                return;
+            }
+
+            if (Exists(quote))
+            {
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.LOAD, nameof(quote), DebugError.NORMAL_EXISTS_YES);
+                DebugBot.PrintLine(nameof(quote.quote), quote.quote);
+
                 return;
             }
 
@@ -68,14 +77,14 @@ namespace TwitchChatBot.Chat
             {
                 quotes.Add(quote);
 
-                BotDebug.Success(DebugMethod.Load, DebugObject.Quote, quote.quote);
-                BotDebug.PrintObject(quote);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.LOAD, nameof(quote));
+                DebugBot.PrintObject(quote);
             }
             catch (Exception exception)
             {
-                BotDebug.Error(DebugMethod.Load, DebugObject.Quote, DebugError.Exception);
-                BotDebug.PrintLine(nameof(quote.quote), quote.quote);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.LOAD, nameof(quote), DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(nameof(quote.quote), quote.quote);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
 
                 return;
             }
@@ -92,7 +101,7 @@ namespace TwitchChatBot.Chat
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         public void Modify(Commands commands, Message message, TwitchClientOAuth broadcaster, TwitchClientOAuth bot)
         {
-            string temp = commands.ParseCommandString(message),
+            string temp = commands.ParseAfterCommand(message),
                    key = temp.TextBefore(" ");
 
             message.body = temp.TextAfter(" ").CheckString() ? temp.TextAfter(" ") : temp;
@@ -117,11 +126,11 @@ namespace TwitchChatBot.Chat
             }
             catch (Exception exception)
             {
-                BotDebug.Error(DebugMethod.Modify, DebugObject.Quote, DebugError.Exception);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
-                BotDebug.PrintLine(nameof(temp), temp);
-                BotDebug.PrintLine(nameof(key), key);
-                BotDebug.PrintLine(nameof(message.body), message.body);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.MODIFY, "quote", DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(nameof(temp), temp);
+                DebugBot.PrintLine(nameof(key), key);
+                DebugBot.PrintLine(nameof(message.body), message.body);
             }
         }
 
@@ -134,21 +143,27 @@ namespace TwitchChatBot.Chat
         /// <param name="broadcaster">Coontains the broadcaster name to be appended to the end of the quote</param>
         public void Add(Message message, TwitchClientOAuth broadcaster)
         {
-            BotDebug.BlankLine();
-            BotDebug.SubHeader("Adding quote...");
+            DebugBot.BlankLine();
+            DebugBot.SubHeader("Adding quote...");
 
-            Quote quote = MessageToQuote(DebugMethod.Add, message, broadcaster);
+            Quote quote = MessageToQuote(message, broadcaster);
 
-            if (!CheckSyntax(DebugMethod.Add, quote))
+            if (quote == default(Quote))
             {
-                Notify.Error(DebugMethod.Add, DebugObject.Quote, quote.quote, DebugError.Syntax, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.ADD, message, nameof(quote), message.body, DebugError.NORMAL_SERIALIZE);
+
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.ADD, nameof(quote), DebugError.NORMAL_SERIALIZE);
+                DebugBot.PrintLine(nameof(message.body), message.body);
 
                 return;
             }
 
-            if (Exists(DebugMethod.Add, quote))
+            if (Exists(quote))
             {
-                Notify.Error(DebugMethod.Add, DebugObject.Quote, quote.quote, DebugError.ExistYes, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.ADD, message, nameof(quote), quote.quote, DebugError.NORMAL_EXISTS_YES);
+
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.ADD, nameof(quote), DebugError.NORMAL_EXISTS_YES);
+                DebugBot.PrintLine(nameof(quote.quote), quote.quote);
 
                 return;
             }
@@ -159,32 +174,32 @@ namespace TwitchChatBot.Chat
 
                 JsonConvert.SerializeObject(quotes, Formatting.Indented).OverrideFile(FILE_PATH);
 
-                Notify.Success(DebugMethod.Add, DebugObject.Quote, quote.quote, message);
+                Notify.Enqueue(DebugMessageType.SUCCESS, DebugMethod.ADD, message, nameof(quote), quote.quote);
 
-                BotDebug.Success(DebugMethod.Add, DebugObject.Quote, quote.quote);
-                BotDebug.PrintObject(quote);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.ADD, nameof(quote));
+                DebugBot.PrintObject(quote);
             }
             catch (Exception exception)
             {
-                Notify.Error(DebugMethod.Add, DebugObject.Quote, quote.quote, DebugError.Exception, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.ADD, message, nameof(quote), quote.quote, DebugError.NORMAL_EXCEPTION);
 
-                BotDebug.Error(DebugMethod.Add, DebugObject.Quote, DebugError.Exception);
-                BotDebug.PrintLine(nameof(quote.quote), quote.quote);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.ADD, nameof(quote), DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(nameof(quote.quote), quote.quote);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
             }
         }
 
         public void Edit(Message message, TwitchClientOAuth broadcaster)
         {
-            BotDebug.BlankLine();
-            BotDebug.SubHeader("Editing quote...");                        
+            DebugBot.BlankLine();
+            DebugBot.SubHeader("Editing quote...");                        
 
             if (!message.body.CheckString())
             {
-                Notify.Error(DebugMethod.Edit, DebugObject.Quote, message.body, DebugError.Null, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.EDIT, message, "quote", message.body, DebugError.NORMAL_NULL);
 
-                BotDebug.Error(DebugMethod.Edit, DebugObject.Quote, DebugError.Null);
-                BotDebug.PrintLine(nameof(message.body), "null");
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.EDIT, "quote", DebugError.NORMAL_NULL);
+                DebugBot.PrintLine(nameof(message.body), "null");
 
                 return;
             }
@@ -193,22 +208,25 @@ namespace TwitchChatBot.Chat
 
             if(index == -1)
             {
-                Notify.Error(DebugMethod.Edit, DebugObject.Quote, message.body, DebugError.Bounds, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.EDIT, message, "quote", index.ToString(), DebugError.NORMAL_OUT_OF_BOUNDS);
 
-                BotDebug.Error(DebugMethod.Edit, DebugObject.Quote, DebugError.Bounds);
-                BotDebug.PrintLine(nameof(index), index.ToString());
-                BotDebug.PrintLine(nameof(quotes.Count), quotes.Count.ToString());
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.EDIT, "quote", DebugError.NORMAL_OUT_OF_BOUNDS);
+                DebugBot.PrintLine(nameof(index), index.ToString());
+                DebugBot.PrintLine(nameof(quotes.Count), quotes.Count.ToString());
 
                 return;
             }
 
             message.body = message.body.TextAfter(" ").RemoveWhiteSpace(WhiteSpace.Left);
 
-            Quote quote = MessageToQuote(DebugMethod.Edit, message, broadcaster);
+            Quote quote = MessageToQuote(message, broadcaster);
             
-            if (!CheckSyntax(DebugMethod.Edit, quote))
+            if(quote == default(Quote))
             {
-                Notify.Error(DebugMethod.Edit, DebugObject.Quote, message.body, DebugError.Syntax, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.EDIT, message, nameof(quote), message.body, DebugError.NORMAL_SERIALIZE);
+
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.EDIT, nameof(quote), DebugError.NORMAL_SERIALIZE);
+                DebugBot.PrintLine(nameof(message.body), message.body);
 
                 return;
             }
@@ -219,33 +237,34 @@ namespace TwitchChatBot.Chat
 
                 JsonConvert.SerializeObject(quotes, Formatting.Indented).OverrideFile(FILE_PATH);
 
-                Notify.Success(DebugMethod.Edit, DebugObject.Quote, quote.quote, message);
+                Notify.Enqueue(DebugMessageType.SUCCESS, DebugMethod.EDIT, message, nameof(quote), index.ToString());
 
-                BotDebug.Success(DebugMethod.Edit, DebugObject.Quote, quote.quote);
-                BotDebug.PrintLine(nameof(index), index.ToString());
-                BotDebug.PrintObject(quote);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.EDIT, nameof(quote));
+                DebugBot.PrintObject(quote);
+                DebugBot.PrintLine(nameof(index), index.ToString());
+                
             }
             catch (Exception exception)
             {
-                Notify.Error(DebugMethod.Edit, DebugObject.Quote, message.body, DebugError.Exception, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.EDIT, message, nameof(quote), quote.quote, DebugError.NORMAL_EXCEPTION);
 
-                BotDebug.Error(DebugMethod.Edit, DebugObject.Quote, DebugError.Exception);
-                BotDebug.PrintLine(nameof(quote.quote), quote.quote);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.EDIT, nameof(quote), DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(nameof(quote.quote), quote.quote);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
             }
         }
 
         private void Remove(Message message)
         {
-            BotDebug.BlankLine();
-            BotDebug.SubHeader("Removing quote...");
+            DebugBot.BlankLine();
+            DebugBot.SubHeader("Removing quote...");
 
             if (!message.body.CheckString())
             {
-                Notify.Error(DebugMethod.Remove, DebugObject.Quote, message.body, DebugError.Null, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.REMOVE, message, "quote", message.body, DebugError.NORMAL_NULL);
 
-                BotDebug.Error(DebugMethod.Remove, DebugObject.Quote, DebugError.Null);
-                BotDebug.PrintLine(nameof(message.body), "null");
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.REMOVE, "quote", DebugError.NORMAL_NULL);
+                DebugBot.PrintLine(nameof(message.body), "null");
 
                 return;
             }
@@ -254,11 +273,11 @@ namespace TwitchChatBot.Chat
 
             if (index == -1)
             {
-                Notify.Error(DebugMethod.Remove, DebugObject.Quote, message.body, DebugError.Bounds, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.REMOVE, message, "quote", index.ToString(), DebugError.NORMAL_OUT_OF_BOUNDS);
 
-                BotDebug.Error(DebugMethod.Remove, DebugObject.Quote, DebugError.Bounds);
-                BotDebug.PrintLine(nameof(index), index.ToString());
-                BotDebug.PrintLine(nameof(quotes.Count), quotes.Count.ToString());
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.REMOVE, "quote", DebugError.NORMAL_OUT_OF_BOUNDS);
+                DebugBot.PrintLine(nameof(index), index.ToString());
+                DebugBot.PrintLine(nameof(quotes.Count), quotes.Count.ToString());
 
                 return;
             }
@@ -269,17 +288,17 @@ namespace TwitchChatBot.Chat
 
                 JsonConvert.SerializeObject(quotes, Formatting.Indented).OverrideFile(FILE_PATH);
 
-                Notify.Success(DebugMethod.Remove, DebugObject.Quote, index.ToString(), message);
+                Notify.Enqueue(DebugMessageType.SUCCESS, DebugMethod.REMOVE, message, "quote", index.ToString());
 
-                BotDebug.Success(DebugMethod.Remove, DebugObject.Quote, index.ToString());
-                BotDebug.PrintLine(nameof(index), index.ToString());
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.REMOVE, "quote");
+                DebugBot.PrintLine(nameof(index), index.ToString());
             }
             catch (Exception exception)
             {
-                Notify.Error(DebugMethod.Remove, DebugObject.Quote, message.body, DebugError.Exception, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.REMOVE, message, "quote", message.body, DebugError.NORMAL_EXCEPTION);
 
-                BotDebug.Error(DebugMethod.Remove, DebugObject.Quote, DebugError.Exception);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.REMOVE, "quote", DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
             }
         }
 
@@ -301,8 +320,8 @@ namespace TwitchChatBot.Chat
             {
                 Notify.SendMessage(message, "There are no quotes yet!");
 
-                BotDebug.Error(DebugMethod.Retrieve, DebugObject.Quote, DebugError.Null);
-                BotDebug.PrintLine(nameof(quotes.Count), quotes.Count.ToString());
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.GET, "quote", DebugError.NORMAL_NULL);
+                DebugBot.PrintLine(nameof(quotes.Count), quotes.Count.ToString());
 
                 return _quote;
             }
@@ -313,11 +332,11 @@ namespace TwitchChatBot.Chat
 
                 if (index == -1)
                 {
-                    Notify.Error(DebugMethod.Retrieve, DebugObject.Quote, index.ToString(), DebugError.Bounds, message);
+                    Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.GET, message, "quote", index.ToString(), DebugError.NORMAL_OUT_OF_BOUNDS);
 
-                    BotDebug.Error(DebugMethod.Retrieve, DebugObject.Quote, DebugError.Bounds);
-                    BotDebug.PrintLine(nameof(index), index.ToString());
-                    BotDebug.PrintLine(nameof(quotes.Count), quotes.Count.ToString());
+                    DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.GET, "quote", DebugError.NORMAL_OUT_OF_BOUNDS);
+                    DebugBot.PrintLine(nameof(index), index.ToString());
+                    DebugBot.PrintLine(nameof(quotes.Count), quotes.Count.ToString());
 
                     return _quote;
                 }
@@ -362,40 +381,15 @@ namespace TwitchChatBot.Chat
         #region Boolean checks
 
         /// <summary>
-        /// Checks to see if the quote matches the proper syntax.
-        /// </summary>
-        /// <param name="method">The type of operation being performed.</param>
-        /// <param name="quote">The quote to parse.</param>
-        /// <returns></returns>
-        private bool CheckSyntax(DebugMethod method, Quote quote)
-        {
-            string _quote = quote.quote.Replace("\"", string.Empty);
-
-            if (!_quote.CheckString() || quote == default(Quote))
-            {              
-                BotDebug.SyntaxError(DebugObject.Quote, DebugObject.Quote, SyntaxError.Null);
-                BotDebug.Error(method, DebugObject.Quote, DebugError.Syntax);
-                BotDebug.PrintLine(nameof(quote.quote), "null");
-
-                return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
         /// Checks to see if a quote already exists.
         /// </summary>
         /// /// <param name="debug_method">The type of operation being performed.</param>
         /// <param name="quote">Quote to check.</param>
         /// <returns></returns>
-        private bool Exists(DebugMethod debug_method, Quote quote)
+        private bool Exists(Quote quote)
         {
             if(quotes.Exists(x => x.quote == quote.quote))
-            {
-                BotDebug.Error(debug_method, DebugObject.Quote, DebugError.ExistYes);
-                BotDebug.PrintLine(nameof(quote.quote), quote.quote);
-
+            {               
                 return true;
             }
 
@@ -441,7 +435,7 @@ namespace TwitchChatBot.Chat
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         /// <param name="broadcaster">Contains the name of the broadcaster to be appended to the end of the quote.</param>
         /// <returns></returns>
-        private Quote MessageToQuote(DebugMethod method, Message message, TwitchClientOAuth broadcaster)
+        private Quote MessageToQuote(Message message, TwitchClientOAuth broadcaster)
         {
             string quote_string = message.body;
 
@@ -454,19 +448,16 @@ namespace TwitchChatBot.Chat
                     date = DateTime.Now                    
                 };
 
-                BotDebug.Success(DebugMethod.Serialize, DebugObject.Quote, quote.quote);
-                BotDebug.PrintObject(quote);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.SERIALIZE, nameof(quote));
+                DebugBot.PrintObject(quote);
 
                 return quote;
             }
             catch (Exception exception)
             {
-                Notify.Error(method, DebugObject.Quote, quote_string, DebugError.Exception, message);
-
-                BotDebug.Error(DebugMethod.Serialize, DebugObject.Quote, DebugError.Exception);
-                BotDebug.Error(method, DebugObject.Quote, DebugError.Null);
-                BotDebug.PrintLine(nameof(quote_string), quote_string);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.SERIALIZE, "quote", DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(nameof(quote_string), quote_string);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
 
                 return default(Quote);
             }

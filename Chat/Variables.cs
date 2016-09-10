@@ -4,14 +4,13 @@ using System.IO;
 
 using Newtonsoft.Json;
 
-using TwitchChatBot.Debugger;
-using TwitchChatBot.Enums.Debug;
-using TwitchChatBot.Enums.Extensions;
-using TwitchChatBot.Extensions;
-using TwitchChatBot.Extensions.Files;
-using TwitchChatBot.Models.Bot;
+using TwitchBot.Debugger;
+using TwitchBot.Enums.Extensions;
+using TwitchBot.Extensions;
+using TwitchBot.Extensions.Files;
+using TwitchBot.Models.Bot.Chat;
 
-namespace TwitchChatBot.Chat
+namespace TwitchBot.Chat
 {
     class Variables
     {
@@ -35,11 +34,11 @@ namespace TwitchChatBot.Chat
 
             List<Variable> variables_preloaded_list;
 
-            BotDebug.BlankLine();
+            DebugBot.BlankLine();
 
-            BotDebug.BlockBegin();
-            BotDebug.Header("Loading Variables");
-            BotDebug.PrintLine("File path:", file_path);
+            DebugBot.BlockBegin();
+            DebugBot.Header("Loading Variables");
+            DebugBot.PrintLine("File path:", file_path);
 
             variables_preloaded = File.ReadAllText(file_path);
             variables_preloaded_list = JsonConvert.DeserializeObject<List<Variable>>(variables_preloaded);
@@ -52,7 +51,7 @@ namespace TwitchChatBot.Chat
                 }
             }
 
-            BotDebug.BlockEnd();
+            DebugBot.BlockEnd();
         }
 
         #region Load variables
@@ -63,21 +62,21 @@ namespace TwitchChatBot.Chat
         /// <param name="variable">The variable to load.</param>
         private void Load(Variable variable)
         {
-            BotDebug.BlankLine();
-            BotDebug.SubHeader("Loading variable...");
+            DebugBot.BlankLine();
+            DebugBot.SubHeader("Loading variable...");
 
-            if (!CheckSyntax(variable))
+            if (!CheckSyntax(DebugMethod.LOAD, variable))
             {
-                BotDebug.Error(DebugMethod.Load, DebugObject.Variable, DebugError.Syntax);
-                BotDebug.PrintObject(variable);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.LOAD, nameof(variable), DebugError.NORMAL_SYNTAX);
+                DebugBot.PrintObject(variable);
 
                 return;
             }
-
+            
             if (Exists(variable.key))
             {
-                BotDebug.Error(DebugMethod.Load, DebugObject.Variable, DebugError.ExistYes);
-                BotDebug.PrintLine(nameof(variable.key), variable.key);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.LOAD, nameof(variable), DebugError.NORMAL_EXISTS_YES);
+                DebugBot.PrintLine(nameof(variable.key), variable.key);
 
                 return;
             }
@@ -87,14 +86,14 @@ namespace TwitchChatBot.Chat
                 variables_list.Add(variable);
                 variables_dictionary.Add(variable.key, variable);
 
-                BotDebug.Success(DebugMethod.Load, DebugObject.Variable, variable.key);
-                BotDebug.PrintObject(variable);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.LOAD, nameof(variable));
+                DebugBot.PrintObject(variable);
             }
             catch (Exception exception)
             {
-                BotDebug.Error(DebugMethod.Load, DebugObject.Variable, DebugError.Exception);
-                BotDebug.PrintLine(nameof(variable.key), variable.key);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.LOAD, nameof(variable), DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(nameof(variable.key), variable.key);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
             }
         }
 
@@ -109,7 +108,7 @@ namespace TwitchChatBot.Chat
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         public void Modify(Commands commands, Message message)
         {
-            string temp = commands.ParseCommandString(message),
+            string temp = commands.ParseAfterCommand(message),
                    key = temp.TextBefore(" ");
 
             message.body = temp.TextAfter(" ");
@@ -133,23 +132,23 @@ namespace TwitchChatBot.Chat
             }
             catch (Exception exception)
             {
-                BotDebug.Error(DebugMethod.Modify, DebugObject.Variable, DebugError.Exception);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
-                BotDebug.PrintLine(nameof(temp), temp);
-                BotDebug.PrintLine(nameof(key), key);
-                BotDebug.PrintLine(nameof(message.body), message.body);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.MODIFY, "variable", DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(nameof(temp), temp);
+                DebugBot.PrintLine(nameof(key), key);
+                DebugBot.PrintLine(nameof(message.body), message.body);
             }
         }
 
         private void Add(Commands commands, Message message)
         {
-            BotDebug.BlankLine();
-            BotDebug.SubHeader("Adding variable...");
+            DebugBot.BlankLine();
+            DebugBot.SubHeader("Adding variable...");
 
-            Variable variable = MessageToVariable(DebugMethod.Add, message);
+            Variable variable = MessageToVariable(message);
 
             if(variable != default(Variable))
-            {
+            {               
                 Add(variable, message);
             }            
         }
@@ -163,25 +162,29 @@ namespace TwitchChatBot.Chat
         {           
             if (variable == default(Variable))
             {
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.ADD, message, nameof(variable), variable.key, DebugError.NORMAL_SERIALIZE);
+
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.ADD, nameof(variable), DebugError.NORMAL_SERIALIZE);
+
                 return;
             }
 
-            if (!CheckSyntax(variable))
+            if (!CheckSyntax(DebugMethod.ADD, variable))
             {
-                Notify.Error(DebugMethod.Add, DebugObject.Variable, variable.key, DebugError.Syntax, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.ADD, message, nameof(variable), variable.key, DebugError.NORMAL_NULL);
 
-                BotDebug.Error(DebugMethod.Add, DebugObject.Variable, DebugError.Syntax);
-                BotDebug.PrintObject(variable);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.ADD, nameof(variable), DebugError.NORMAL_SYNTAX);
+                DebugBot.PrintObject(variable);
 
                 return;
             }
 
             if (Exists(variable.key))
             {
-                Notify.Error(DebugMethod.Add, DebugObject.Variable, variable.key, DebugError.ExistYes, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.ADD, message, nameof(variable), variable.key, DebugError.NORMAL_EXISTS_YES);
 
-                BotDebug.Error(DebugMethod.Add, DebugObject.Variable, DebugError.ExistYes);
-                BotDebug.PrintLine(nameof(variable.key), variable.key);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.ADD, nameof(variable), DebugError.NORMAL_EXISTS_YES);
+                DebugBot.PrintLine(nameof(variable.key), variable.key);
 
                 return;
             }
@@ -193,18 +196,18 @@ namespace TwitchChatBot.Chat
 
                 JsonConvert.SerializeObject(variables_list, Formatting.Indented).OverrideFile(file_path);
 
-                Notify.Success(DebugMethod.Add, DebugObject.Variable, variable.key, message);
+                Notify.Enqueue(DebugMessageType.SUCCESS, DebugMethod.ADD, message, nameof(variable), variable.key);
 
-                BotDebug.Success(DebugMethod.Add, DebugObject.Variable, variable.key);
-                BotDebug.PrintObject(variable);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.ADD, nameof(variable));
+                DebugBot.PrintObject(variable);
             }
             catch (Exception exception)
             {
-                Notify.Error(DebugMethod.Add, DebugObject.Variable, variable.key, DebugError.Exception, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.ADD, message, nameof(variable), variable.key, DebugError.NORMAL_EXCEPTION);
 
-                BotDebug.Error(DebugMethod.Add, DebugObject.Variable, DebugError.Exception);
-                BotDebug.PrintLine(nameof(variable.key), variable.key);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.ADD, nameof(variable), DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(nameof(variable.key), variable.key);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
             }
         }
 
@@ -215,23 +218,27 @@ namespace TwitchChatBot.Chat
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         private void Edit(Message message)
         {
-            BotDebug.BlankLine();
-            BotDebug.SubHeader("Editing variable...");
+            DebugBot.BlankLine();
+            DebugBot.SubHeader("Editing variable...");
 
-            Variable variable = MessageToVariable(DebugMethod.Edit, message);
+            Variable variable = MessageToVariable(message);
 
             if (variable == default(Variable))
             {
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.EDIT, message, nameof(variable), variable.key, DebugError.NORMAL_SERIALIZE);
+
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.EDIT, nameof(variable), DebugError.NORMAL_SERIALIZE);
+
                 return;
             }
 
             //check to see if the variable and value have the correct syntax
-            if (!CheckSyntax(variable))
+            if (!CheckSyntax(DebugMethod.EDIT, variable))
             {
-                Notify.Error(DebugMethod.Edit, DebugObject.Variable, variable.key, DebugError.Syntax, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.EDIT, message, nameof(variable), variable.key, DebugError.NORMAL_SYNTAX);
 
-                BotDebug.Error(DebugMethod.Edit, DebugObject.Variable, DebugError.Syntax);
-                BotDebug.PrintObject(variable);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.EDIT, nameof(variable), DebugError.NORMAL_SYNTAX);
+                DebugBot.PrintObject(variable);
 
                 return;
             }
@@ -239,10 +246,10 @@ namespace TwitchChatBot.Chat
             //make sure the variable exists
             if (!Exists(variable.key))
             {
-                Notify.Error(DebugMethod.Edit, DebugObject.Variable, variable.key, DebugError.ExistNo, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.EDIT, message, nameof(variable), variable.key, DebugError.NORMAL_EXISTS_NO);
 
-                BotDebug.Error(DebugMethod.Edit, DebugObject.Variable, DebugError.ExistNo);
-                BotDebug.PrintLine(nameof(variable.key), variable.key);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.EDIT, nameof(variable), DebugError.NORMAL_EXISTS_NO);
+                DebugBot.PrintLine(nameof(variable.key), variable.key);
 
                 return;
             }
@@ -256,18 +263,18 @@ namespace TwitchChatBot.Chat
 
                 JsonConvert.SerializeObject(variables_list, Formatting.Indented).OverrideFile(file_path);
 
-                Notify.Success(DebugMethod.Edit, DebugObject.Variable, variable.key, message);
+                Notify.Enqueue(DebugMessageType.SUCCESS, DebugMethod.EDIT, message, nameof(variable), variable.key);
 
-                BotDebug.Success(DebugMethod.Edit, DebugObject.Variable, variable.key);
-                BotDebug.PrintObject(variable);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.EDIT, nameof(variable));
+                DebugBot.PrintObject(variable);
             }
             catch (Exception exception)
             {
-                Notify.Error(DebugMethod.Edit, DebugObject.Variable, variable.key, DebugError.Exception, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.EDIT, message, nameof(variable), variable.key, DebugError.NORMAL_EXCEPTION);
 
-                BotDebug.Error(DebugMethod.Edit, DebugObject.Variable, DebugError.Exception);
-                BotDebug.PrintLine(nameof(variable.key), variable.key);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.EDIT, nameof(variable), DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(nameof(variable.key), variable.key);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
             }
         }
 
@@ -278,22 +285,26 @@ namespace TwitchChatBot.Chat
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         private void Remove(Message message)
         {
-            BotDebug.BlankLine();
-            BotDebug.SubHeader("Removing variable...");
+            DebugBot.BlankLine();
+            DebugBot.SubHeader("Removing variable...");
 
-            Variable variable = MessageToVariable(DebugMethod.Remove, message);
+            Variable variable = MessageToVariable(message);
 
             if (variable == default(Variable))
             {
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.REMOVE, message, nameof(variable), variable.key, DebugError.NORMAL_SERIALIZE);
+
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.REMOVE, nameof(variable), DebugError.NORMAL_SERIALIZE);
+
                 return;
             }
 
             if (!Exists(variable.key))
             {
-                Notify.Error(DebugMethod.Remove, DebugObject.Variable, variable.key, DebugError.ExistNo, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.REMOVE, message, nameof(variable), variable.key, DebugError.NORMAL_EXISTS_NO);
 
-                BotDebug.Error(DebugMethod.Remove, DebugObject.Variable, DebugError.ExistNo);
-                BotDebug.PrintLine(nameof(variable.key), variable.key);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.REMOVE, nameof(variable), DebugError.NORMAL_EXISTS_NO);
+                DebugBot.PrintLine(nameof(variable.key), variable.key);
 
                 return;
             }
@@ -305,18 +316,18 @@ namespace TwitchChatBot.Chat
 
                 JsonConvert.SerializeObject(variables_list, Formatting.Indented).OverrideFile(file_path);
 
-                Notify.Success(DebugMethod.Remove, DebugObject.Variable, variable.key, message);
+                Notify.Enqueue(DebugMessageType.SUCCESS, DebugMethod.REMOVE, message, nameof(variable), variable.key);
 
-                BotDebug.Success(DebugMethod.Remove, DebugObject.Variable, variable.key);
-                BotDebug.PrintObject(variable);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.REMOVE, nameof(variable));
+                DebugBot.PrintObject(variable);
             }
             catch (Exception exception)
             {
-                Notify.Error(DebugMethod.Remove, DebugObject.Variable, variable.key, DebugError.Exception, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.REMOVE, message, nameof(variable), variable.key, DebugError.NORMAL_EXCEPTION);
 
-                BotDebug.Error(DebugMethod.Remove, DebugObject.Variable, DebugError.Exception);
-                BotDebug.PrintLine(nameof(variable.key), variable.key);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.REMOVE, nameof(variable), DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(nameof(variable.key), variable.key);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
             }
         }
 
@@ -339,21 +350,22 @@ namespace TwitchChatBot.Chat
         /// </summary>
         /// <param name="variable">Variable to be checked for proper syntax.</param>
         /// <returns></returns>
-        private bool CheckSyntax(Variable variable)
+        private bool CheckSyntax(DebugMethod method, Variable variable)
         {
             //check to see if the strings are null
             if (!variable.key.CheckString())
             {
-                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Variable, SyntaxError.Null);
-                BotDebug.PrintLine(nameof(variable.key), "null");
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(variable), DebugError.SYNTAX_NULL);
+                DebugBot.PrintLine(nameof(variable.key), "null");
 
                 return false;
             }
 
             if (!variable.value.CheckString())
             {
-                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Value, SyntaxError.Null);
-                BotDebug.PrintObject(variable);
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(variable), DebugError.SYNTAX_NULL);
+                DebugBot.PrintLine(nameof(variable.key), variable.key);
+                DebugBot.PrintLine(nameof(variable.value), "null");
 
                 return false;
             }
@@ -361,8 +373,8 @@ namespace TwitchChatBot.Chat
             //check to see if the key is wrapped in the indicators
             if (!variable.key.StartsWith(lower_variable_indicator.ToString()) || !variable.key.EndsWith(upper_variable_indicator.ToString()))
             {
-                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Variable, SyntaxError.SquareBracketsYes);
-                BotDebug.PrintLine(nameof(variable.key), variable.key);
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(variable), DebugError.SYNTAX_SQUARE_BRACKETS_ENCLOSED_YES);
+                DebugBot.PrintLine(nameof(variable.key), variable.key);
 
                 return false;
             }                                   
@@ -372,32 +384,32 @@ namespace TwitchChatBot.Chat
             //check for illegal characters in the key
             if (_variable.Contains("{") || _variable.Contains("}"))
             {
-                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Variable, SyntaxError.BracketsNo);
-                BotDebug.PrintLine(nameof(variable.key), variable.key);
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(variable), DebugError.SYNTAX_BRACKETS_NO);
+                DebugBot.PrintLine(nameof(variable.key), variable.key);
 
                 return false;
             }
 
             if (_variable.Contains(lower_variable_indicator.ToString()) || _variable.Contains(upper_variable_indicator.ToString()))
             {
-                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Variable, SyntaxError.SquareBracketsNo);
-                BotDebug.PrintLine(nameof(variable.key), variable.key);
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(variable), DebugError.SYNTAX_SQUARE_BRACKETS_NO);
+                DebugBot.PrintLine(nameof(variable.key), _variable);
 
                 return false;
             }
 
             if (_variable.Contains(lower_variable_search.ToString()) || _variable.Contains(upper_variable_search.ToString()))
             {
-                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Variable, SyntaxError.ParenthesisNo);
-                BotDebug.PrintLine(nameof(variable.key), variable.key);
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(variable), DebugError.SYNTAX_PARENTHESIS_NO);
+                DebugBot.PrintLine(nameof(variable.key), _variable);
 
                 return false;
             }
 
             if (_variable.Contains(" "))
             {
-                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Value, SyntaxError.Spaces);
-                BotDebug.PrintLine(nameof(variable.key), variable.key);
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(variable), DebugError.SYNTAX_SPACES_NO);
+                DebugBot.PrintLine(nameof(variable.key), variable.key);
 
                 return false;
             }
@@ -405,24 +417,24 @@ namespace TwitchChatBot.Chat
             //check for illegal characters in the value
             if (variable.value.Contains("{") || variable.value.Contains("}"))
             {
-                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Value, SyntaxError.BracketsNo);
-                BotDebug.PrintObject(variable);
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(variable), DebugError.SYNTAX_BRACKETS_NO);
+                DebugBot.PrintLine(nameof(variable.value), variable.value);
 
                 return false;
             }
 
             if (variable.value.Contains(lower_variable_indicator.ToString()) || variable.value.Contains(upper_variable_indicator.ToString()))
             {
-                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Value, SyntaxError.SquareBracketsNo);
-                BotDebug.PrintObject(variable);
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(variable), DebugError.SYNTAX_SQUARE_BRACKETS_NO);
+                DebugBot.PrintLine(nameof(variable.value), variable.value);
 
                 return false;
             }
 
             if (variable.value.Contains(lower_variable_search.ToString()) || variable.value.Contains(upper_variable_search.ToString()))
             {
-                BotDebug.SyntaxError(DebugObject.Variable, DebugObject.Value, SyntaxError.ParenthesisNo);
-                BotDebug.PrintObject(variable);
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(variable), DebugError.SYNTAX_PARENTHESIS_NO);
+                DebugBot.PrintLine(nameof(variable.value), variable.value);
 
                 return false;
             }            
@@ -442,7 +454,7 @@ namespace TwitchChatBot.Chat
         /// <param name="commands">Parses the body of a <see cref="Message"/> after the command and returns a <see cref="string"/> to be processed as a <see cref="Variable"/>.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         /// <returns></returns>
-        private Variable MessageToVariable(DebugMethod method, Message message)
+        private Variable MessageToVariable(Message message)
         {
             string variable_string = message.body;
 
@@ -452,19 +464,16 @@ namespace TwitchChatBot.Chat
             {
                 Variable variable = JsonConvert.DeserializeObject<Variable>(variable_string);
 
-                BotDebug.Success(DebugMethod.Serialize, DebugObject.Command, variable.key);
-                BotDebug.PrintObject(variable);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.SERIALIZE, nameof(variable_string));
+                DebugBot.PrintObject(variable);
 
                 return variable;
             }
             catch (Exception exception)
             {
-                Notify.Error(method, DebugObject.Variable, variable_string, DebugError.Exception, message);
-
-                BotDebug.Error(DebugMethod.Serialize, DebugObject.Variable, DebugError.Exception);
-                BotDebug.Error(method, DebugObject.Variable, DebugError.Null);
-                BotDebug.PrintLine(nameof(variable_string), variable_string);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.SERIALIZE, nameof(variable_string), DebugError.NORMAL_EXCEPTION);                
+                DebugBot.PrintLine(nameof(variable_string), variable_string);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
 
                 return default(Variable);
             }
@@ -486,19 +495,20 @@ namespace TwitchChatBot.Chat
             {
                 Variable variable = JsonConvert.DeserializeObject<Variable>(variable_string);
 
-                BotDebug.Success(DebugMethod.Serialize, DebugObject.Command, variable.key);
-                BotDebug.PrintObject(variable);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.SERIALIZE, nameof(variable_string));
+                DebugBot.PrintObject(variable);
 
                 return variable;
             }
             catch (Exception exception)
             {
-                Notify.Error(method, DebugObject.Variable, variable_string, DebugError.Exception, message);
+                Notify.Enqueue(DebugMessageType.ERROR, method, message, nameof(variable_string), variable_string, DebugError.NORMAL_EXCEPTION);
 
-                BotDebug.Error(DebugMethod.Serialize, DebugObject.Variable, DebugError.Exception);
-                BotDebug.Error(method, DebugObject.Variable, DebugError.Null);
-                BotDebug.PrintLine(nameof(variable_string), variable_string);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.SERIALIZE, nameof(variable_string), DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(variable_string), DebugError.NORMAL_EXCEPTION);
+
+                DebugBot.PrintLine(nameof(variable_string), variable_string);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
 
                 return default(Variable);
             }
@@ -532,16 +542,16 @@ namespace TwitchChatBot.Chat
 
                 try
                 {                    
-                    variable = MessageToVariable(DebugMethod.Add, message, extracted_variable);
+                    variable = MessageToVariable(DebugMethod.ADD, message, extracted_variable);
                     response = response.Replace(lower_variable_search + extracted_variable + upper_variable_search, variable.key);
 
                     list.Add(variable);
                 }
                 catch(Exception exception)
                 {
-                    BotDebug.Error(DebugMethod.Add, DebugObject.Variable, DebugError.Exception);
-                    BotDebug.PrintLine(nameof(extracted_variable), extracted_variable);
-                    BotDebug.PrintLine(nameof(exception), exception.Message);
+                    DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.ADD, nameof(variable), DebugError.NORMAL_EXCEPTION);
+                    DebugBot.PrintLine(nameof(extracted_variable), extracted_variable);
+                    DebugBot.PrintLine(nameof(exception), exception.Message);
                 }
 
                 ++index;

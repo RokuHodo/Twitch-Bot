@@ -1,4 +1,4 @@
-﻿namespace TwitchChatBot.Enums.Chat
+﻿namespace TwitchBot.Enums.Chat
 {
     enum MessageType
     {

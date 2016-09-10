@@ -2,17 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using System.Diagnostics;
-
 using RestSharp;
 
-using TwitchChatBot.Extensions;
-using TwitchChatBot.Helpers;
-using TwitchChatBot.Interfaces;
-using TwitchChatBot.Json;
-using TwitchChatBot.Models.TwitchAPI;
+using TwitchBot.Extensions;
+using TwitchBot.Helpers;
+using TwitchBot.Interfaces;
+using TwitchBot.Json;
+using TwitchBot.Models.TwitchAPI;
+using TwitchBot.Debugger;
 
-namespace TwitchChatBot.Clients
+namespace TwitchBot.Clients
 {
     class TwitchClient : ITwitchClient
     {
@@ -66,7 +65,7 @@ namespace TwitchChatBot.Clients
         public FollowerResult GetFollowers_Page(string channel, Paging paging = default(Paging))
         {
             RestRequest request = Request("channels/{channel}/follows", Method.GET);
-            request.AddUrlSegment("channel", channel);
+            request.AddUrlSegment("channel", channel);            
             request = paging.AddPaging(request);
 
             IRestResponse<FollowerResult> response = client.Execute<FollowerResult>(request);
@@ -148,48 +147,15 @@ namespace TwitchChatBot.Clients
             return up_time;
         }
 
-        /*
-        /// <summary>
-        /// Returns a list of users who have followed when compared against an older list of followers
-        /// </summary>
-        /// <param name="channel">Name of the channel to get the list of followers for.</param>
-        /// <param name="follower_list">The old list of followers to cmopare against.</param>
-        /// <param name="followers">The new list of followers that is requested and referenced.</param>
-        /// <returns></returns>
-        public IEnumerable<string> GetNewFollowers(string channel, List<Follower> follower_list, out Follower[] followers)
-        {
-            followers = GetFollowers_All(channel).ToArray();
-
-            string[] display_names_old = new string[follower_list.Count],
-                     display_names_current = new string[followers.Length];
-
-            for (int index = 0; index < follower_list.Count; index++)
-            {
-                display_names_old[index] = follower_list[index].user.display_name;
-            }
-
-            for (int index = 0; index < display_names_current.Length; index++)
-            {
-                display_names_current[index] = followers[index].user.display_name;
-            }
-
-            return display_names_current.Except(display_names_old);
-        }
-        */
-
-        public IEnumerable<string> GetNewFollowers(string channel, List<string> followers_at_launch, ref List<string> followers_added)
-        {            
-            List<string> comparison_page_list = new List<string>();
-            List<string> requested_pages_all_list = new List<string>();                        
-
+        public IEnumerable<string> GetNewFollowers(string channel, ref DateTime newest_follower_updated_at, ref Trie followers_at_launch_trie)
+        {                              
             bool searching = true;
 
-            string[] overlap,
-                     comparison_page_new_array,
-                     comparison_page_old_array = followers_added.Count > 0 ? followers_added.ToArray() : followers_at_launch.ToArray();
+            List<string> new_followers_list_string = new List<string>();
+            List<Follower> new_followers_list_follower = new List<Follower>();
 
             Paging paging = new Paging();
-            paging.limit = 100;
+            paging.limit = 100;            
 
             FollowerResult requested_page = GetFollowers_Page(channel, paging);
 
@@ -198,39 +164,43 @@ namespace TwitchChatBot.Clients
                 //store the first follower page in a list
                 foreach (Follower follower in requested_page.follows)
                 {
-                    comparison_page_list.Add(follower.user.display_name);
-                    requested_pages_all_list.Add(follower.user.display_name);                    
+                    //check to see if the follower date is earlier than the last follower date
+                    if(DateTime.Compare(follower.user.updated_at, newest_follower_updated_at) <= 0)
+                    {
+                        searching = false;
+
+                        newest_follower_updated_at = follower.user.updated_at;
+
+                        //DebugBot.PrintLine(nameof(follower), follower.user.display_name);
+                        //DebugBot.PrintLine(nameof(follower.user.updated_at), follower.user.updated_at.ToLocalTime().ToString());
+
+                        break;
+                    }
+
+                    //try and add the user to the trie
+                    if (followers_at_launch_trie.Insert(follower.user.display_name))
+                    {
+                        new_followers_list_string.Add(follower.user.display_name);
+                        new_followers_list_follower.Add(follower);
+                    }
                 }
 
-                //see if there are any users that overlap between the old and new arrays
-                comparison_page_new_array = comparison_page_list.ToArray();                
-                overlap = comparison_page_new_array.Intersect(comparison_page_old_array).ToArray();
-
-                //an old follower was found on both arrays
-                //anyting below the old user is also following, all new users have been found, stop searching
-                if (overlap.Length > 0)
+                if (searching)
                 {
-                    searching = false;
-                }
-                //no old followers were are shared between the old and new arrays
-                //search the next page
-                else
-                {
-                    //we only want to compare against MAX(100) followers at a time to keep things efficient instead of starting at the begining every time
-                    comparison_page_list.Clear();
-
                     paging._cursor = requested_page._cursor;
 
                     requested_page = GetFollowers_Page(channel, paging);
-                }
+                }                
             }
             while (searching);
-                        
-            //this will work fine for now, but will probably blow up if the arrays get huge...
-            followers_added.AddRange(requested_pages_all_list);
-            followers_added = followers_added.Distinct().ToList();
 
-            return requested_pages_all_list.ToArray().Except(comparison_page_old_array).Distinct();
+            //make sure to set the "newest_follower_updated_at" to the first person that is added since it is requested in descending order
+            if(new_followers_list_follower.Count > 0)
+            {
+                newest_follower_updated_at = new_followers_list_follower[0].user.updated_at;
+            }            
+
+            return new_followers_list_string;
         }
 
         /// <summary>
@@ -241,7 +211,10 @@ namespace TwitchChatBot.Clients
         /// <returns></returns>
         public RestRequest Request(string url, Method method)
         {
-            return new RestRequest(url, method);
+            RestRequest request = new RestRequest(url, method);
+            request.AddQueryParameter("noCache", DateTime.Now.Ticks.ToString());
+
+            return request;
         }
     }
 }

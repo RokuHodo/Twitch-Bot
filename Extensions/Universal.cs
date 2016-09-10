@@ -2,13 +2,28 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 
-using TwitchChatBot.Debugger;
-using TwitchChatBot.Enums.Extensions;
+using TwitchBot.Debugger;
+using TwitchBot.Enums.Extensions;
 
-namespace TwitchChatBot.Extensions
+namespace TwitchBot.Extensions
 {
     static class Universal
     {
+        /// <summary>
+        /// Calculates the fractional percentage of two numbers and compares the percent to the minimum allowable percentage.
+        /// Checks to see if numerator / denominator < allowable_percent is true 
+        /// </summary>
+        /// <param name="numerator">The value to check.</param>
+        /// <param name="denominator">The maximum value to compare against.</param>
+        /// <param name="max_allowable_percent">The upper threshhold that the calculated percent needs be less than to return true.</param>
+        /// <returns></returns>
+        public static bool CheckPercent(this int numerator, int denominator, int max_allowable_percent)
+        {
+            int percent = 100 * numerator / denominator;
+
+            return Convert.ToInt32(percent) < max_allowable_percent;
+        }
+
         /// <summary>
         /// Converts the uptime fragment from <see cref="TimeSpan"/> to a displayable <see cref="string"/>.
         /// </summary>
@@ -123,7 +138,8 @@ namespace TwitchChatBot.Extensions
             }
             catch (Exception)
             {
-                BotDebug.Error("Failed to find text between \"{start}\" and \"{end}\"");
+                DebugBot.PrintLine(DebugMessageType.ERROR, "Failed to find text between \"" + start + "\" and \"" + end + "\"");
+                DebugBot.PrintLine(nameof(str), str);
             }
 
             return result;
@@ -169,7 +185,7 @@ namespace TwitchChatBot.Extensions
 
                             if (parse_start == -1 || parse_end == -1)
                             {
-                                BotDebug.Error($"Failed to find the text between \"{start}\" and \"{end}\" at occurance = {occurrence}");
+                                DebugBot.PrintLine($"Failed to find the text between \"{start}\" and \"{end}\" at occurance = {occurrence}");
 
                                 parse_start = -1;
                                 parse_end = -1;
@@ -197,8 +213,8 @@ namespace TwitchChatBot.Extensions
             }
             catch (Exception ex)
             {
-                BotDebug.Error($"Failed to find text between \"{start}\" and \"{end}\"");
-                BotDebug.PrintLine("Exception: " + ex.Message);
+                DebugBot.PrintLine($"Failed to find text between \"{start}\" and \"{end}\"");
+                DebugBot.PrintLine("Exception: " + ex.Message);
             }
 
             return result;
@@ -517,6 +533,23 @@ namespace TwitchChatBot.Extensions
             TypeConverter converter = TypeDescriptor.GetConverter(typeof(type));
 
             return converter.IsValid(obj);
+        }
+
+        public static bool Contains<type>(this string str, type[] array, out string value_out)
+        {
+            value_out = string.Empty;
+
+            foreach(type value in array)
+            {
+                if (str.Contains(value.ToString()))
+                {
+                    value_out = value.ToString();
+
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         #endregion

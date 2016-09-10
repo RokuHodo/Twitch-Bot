@@ -3,26 +3,28 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
-using System.Diagnostics;
+using TwitchBot.Chat;
+using TwitchBot.Debugger;
+using TwitchBot.Enums.Chat;
+using TwitchBot.Extensions;
+using TwitchBot.Models.Bot.Chat;
+using TwitchBot.Models.TwitchAPI;
 
-using TwitchChatBot.Chat;
-using TwitchChatBot.Debugger;
-using TwitchChatBot.Enums.Chat;
-using TwitchChatBot.Extensions;
-using TwitchChatBot.Models.Bot;
-using TwitchChatBot.Models.TwitchAPI;
+using TwitchBot.Helpers;
 
-namespace TwitchChatBot.Clients
+namespace TwitchBot.Clients
 {
     class Bot
     {
         //PRIVATE
         readonly double WHISPER_DELAY = 400,            //using 300 is the thresh hold where whispers could potentially be droped, use a higher value for safety
                         PRIVATE_MSG_DELAY = 500,        //using 300 is the absolute fasted that messages could be sent without getting globalled, use 500 in case the broadcatser want to talk as well
-                        FOLLOWER_ALERT_DELAY = 10000;   //check once every 10 seconds in case overhead delays the notification 
+                        FOLLOWER_ALERT_DELAY = 1000;    //check once every 1 second in case overhead delays the notification 
 
-        DateTime last_private_msg_sent,
-                 last_follower_check;
+        DateTime last_whisper_sent, 
+                 last_private_msg_sent,                 
+                 last_follower_check,
+                 newest_follower_updated_at;
 
         Quotes quotes;
         Variables variables;
@@ -30,21 +32,48 @@ namespace TwitchChatBot.Clients
         SpamFilter spam_filter;
 
         Queue<Message> whisper_queue,
-                       private_msg_queue;               
+                       private_msg_queue;
                 
-        List<Follower> followers_at_launch;
+        IEnumerable<Follower> followers_at_launch_IE;
 
-        List<string> followers_added,
-                     followers_at_launch_string;
+        Trie followers_at_launch_trie;
 
-        //PUBLIC
-        public TwitchClientOAuth bot,
-                                 broadcaster;
+        TwitchClientOAuth bot,
+                          broadcaster;
 
-        public Bot(string bot_token, string client_id, TwitchClientOAuth _broadcaster)
+        public Bot(TwitchClientOAuth _bot, TwitchClientOAuth _broadcaster)
         {
+            Message message = new Message();
+
+            last_whisper_sent = DateTime.Now;
             last_private_msg_sent = DateTime.Now;
-            last_follower_check = DateTime.Now;
+            last_follower_check = DateTime.Now;            
+
+            bot = _bot;
+            Notify.SetBot(bot);
+            Notify.SetQueues(private_msg_queue, whisper_queue);
+
+            broadcaster = _broadcaster;
+
+            //monitor the connection for the bot
+            Thread _MonitorConnection_Bot = new Thread(new ThreadStart(MonitorConnection_Bot));
+            _MonitorConnection_Bot.Start();
+
+            Thread.Sleep(50);
+
+            //monitor the connection for the broadcaster
+            Thread _MonitorConnection_Broadcaster = new Thread(new ThreadStart(MonitorConnection_Broadcaster));
+            _MonitorConnection_Broadcaster.Start();
+
+            Thread.Sleep(50);
+
+            //speaking through the bot from the command line
+            Thread _BotSpeak = new Thread(new ThreadStart(BotSpeak));
+            _BotSpeak.Start();            
+
+            Thread.Sleep(50);
+
+            followers_at_launch_trie = new Trie();
 
             quotes = new Quotes();
             variables = new Variables();
@@ -54,37 +83,26 @@ namespace TwitchChatBot.Clients
             whisper_queue = new Queue<Message>();
             private_msg_queue = new Queue<Message>();
 
-            followers_at_launch_string = new List<string>();
-            followers_added = new List<string>();
-
-            bot = new TwitchClientOAuth(client_id, bot_token);
-            Notify.SetBot(bot);
-
-            broadcaster = _broadcaster;            
-
-            Thread.Sleep(100);
-
-            Thread _MonitorConnection_Bot = new Thread(new ThreadStart(MonitorConnection_Bot));
-            _MonitorConnection_Bot.Start();
-
-            Thread _MonitorConnection_Broadcaster = new Thread(new ThreadStart(MonitorConnection_Broadcaster));
-            _MonitorConnection_Broadcaster.Start();
-
-            Thread.Sleep(100);
-
-            Thread _BotSpeak = new Thread(new ThreadStart(BotSpeak));
-            _BotSpeak.Start();
-
             //get the list of all users following the broadcaster
-            followers_at_launch = broadcaster.GetFollowers_All(broadcaster.name).ToList();
-
-            BotDebug.Header("Followers");
-            foreach (Follower follower in followers_at_launch)
+            followers_at_launch_IE = broadcaster.GetFollowers_All(broadcaster.name).ToList();
+            
+            DebugBot.Header("Followers");
+            foreach (Follower follower in followers_at_launch_IE)
             {
-                followers_at_launch_string.Add(follower.user.display_name);
+                followers_at_launch_trie.Insert(follower.user.display_name);
 
-                BotDebug.PrintLine("follower", follower.user.display_name);
+                DebugBot.PrintLine(nameof(follower.user.display_name), follower.user.display_name);
             }
+
+            Follower[] temp_follower_array = followers_at_launch_IE.ToArray();
+
+            //store the date of the newest follower 
+            newest_follower_updated_at = temp_follower_array[0].user.updated_at;
+
+            Thread.Sleep(50);
+
+            Thread _Monitor_Followers = new Thread(new ThreadStart(Monitor_Followers));
+            _Monitor_Followers.Start();
         }
 
         #region Join and Leave a channel
@@ -96,7 +114,7 @@ namespace TwitchChatBot.Clients
         public void JoinChannel(string broadcaster_user_name)
         {
             Console.WriteLine();
-            BotDebug.Notify("Joining room: " + broadcaster_user_name.ToLower() + Environment.NewLine);
+            DebugBot.PrintLine(DebugMessageType.WARNING, "Joining room: " + broadcaster_user_name.ToLower() + Environment.NewLine);
 
             bot.connection.writer.WriteLine("JOIN #" + broadcaster_user_name.ToLower());
             bot.connection.writer.Flush();
@@ -116,9 +134,22 @@ namespace TwitchChatBot.Clients
                 return;
             }
 
-            Message message = private_msg_queue.Dequeue();
+            Message message;
 
-            if(message.command != default(Command))
+            //make sure we don't try and process a "blank" message
+            do
+            {
+                message = private_msg_queue.Dequeue();
+            }
+            while (!message.body.CheckString() && private_msg_queue.Count > 0);
+
+            //just in case the last message in the queue had a blank body
+            if (!message.body.CheckString())
+            {
+                return;
+            }
+
+            if (message.command != default(Command))
             {
                 if (CheckPermission(message.message_type, message))
                 {
@@ -135,12 +166,25 @@ namespace TwitchChatBot.Clients
 
         public void TrySendingWhisper()
         {
-            if (DateTime.Now - last_private_msg_sent < TimeSpan.FromMilliseconds(WHISPER_DELAY) || whisper_queue.Count == 0)
+            if (DateTime.Now - last_whisper_sent < TimeSpan.FromMilliseconds(WHISPER_DELAY) || whisper_queue.Count == 0)
             {
                 return;
             }
 
-            Message message = whisper_queue.Dequeue();
+            Message message;
+
+            //make sure we don't try and process a "blank" message
+            do
+            {
+                message = whisper_queue.Dequeue();
+            }
+            while (!message.body.CheckString() && whisper_queue.Count > 0);
+
+            //just in case the last message in the queue had a blank body
+            if(!message.body.CheckString())
+            {
+                return;
+            }
 
             if (message.command != default(Command))
             {
@@ -149,8 +193,12 @@ namespace TwitchChatBot.Clients
                     ProcessCommand(MessageType.Whisper, message);
                 }
             }
+            else
+            {
+                bot.SendResponse(MessageType.Whisper, message, message.body);
+            }
 
-
+            last_whisper_sent = DateTime.Now;
         }
 
         /// <summary>
@@ -257,7 +305,7 @@ namespace TwitchChatBot.Clients
 
                 if (!bot.connection.isConnected())
                 {
-                    BotDebug.Notify("IRC connection for \"" + bot.name + " is lost. Reconnecting...");
+                    DebugBot.PrintLine(DebugMessageType.WARNING, "IRC connection for \"" + bot.name + " is lost. Reconnecting...");
 
                     bot.connection.Connect();
 
@@ -266,7 +314,7 @@ namespace TwitchChatBot.Clients
 
                 if (!irc_message.CheckString())
                 {
-                    BotDebug.Notify("Null message recieved from the IRC connection for \"" + bot.name + "\"");
+                    DebugBot.PrintLine(DebugMessageType.WARNING, "Null message recieved from the IRC connection for \"" + bot.name + "\"");
 
                     bot.connection.writer.WriteLine("PONG");
                     bot.connection.writer.Flush();
@@ -277,47 +325,57 @@ namespace TwitchChatBot.Clients
                 //the irc is pinging the bot to see if it's still there, so we need to respond to it
                 if (irc_message.StartsWith("PING"))
                 {
-                    BotDebug.Notify("\"" + irc_message + "\" recieved from the \"" + bot.name + "\" IRC connection and responded with \"PONG\"");
+                    DebugBot.PrintLine("\"" + irc_message + "\" recieved from the \"" + bot.name + "\" IRC connection and responded with \"PONG\"", ConsoleColor.Yellow);
 
                     bot.connection.writer.WriteLine("PONG");
                     bot.connection.writer.Flush();
                 }
 
-                Message message = new Message(irc_message, commands, broadcaster.name);                               
+                DebugBot.PrintLine(irc_message);
 
-                Console.WriteLine(irc_message);
+                Message message = MessageParser.Parse(commands, irc_message, broadcaster.display_name);
 
-                if (message.sender != default(Sender) && message.sender.name.CheckString())
+                if (message == default(Message) || message.command == default(Command) || message.sender == default(Sender) || !message.sender.name.CheckString())
                 {
-                    bool message_pass = spam_filter.CheckMessage(message, bot, broadcaster);
+                    continue;
+                }
 
-                    if (message.command != default(Command))
+                //only enqueue the message if it has something to print
+                if (!message.body.CheckString())
+                {
+                    continue;
+                }
+
+                //skip the message if it contains spam
+                if (!spam_filter.CheckMessage(message, bot, broadcaster))
+                {
+                    continue;
+                }
+
+                //check to see if a command is being used in the cooldown period
+                if (message.command != default(Command) && message.command.key.CheckString())
+                {
+                    TimeSpan cooldown = TimeSpan.FromMilliseconds(message.command.cooldown),
+                                cooldown_passed = DateTime.Now - message.command.last_used;
+
+                    if (cooldown_passed.TotalMilliseconds < cooldown.TotalMilliseconds)
                     {
-                        if (message.key.CheckString())
-                        {
-                            //TODO: change from seconds to milliseconds 
-                            TimeSpan cooldown = TimeSpan.FromSeconds(message.command.cooldown),
-                                     cooldown_passed = DateTime.Now - message.command.last_used;
+                        TimeSpan cooldown_left = cooldown - cooldown_passed;
 
-                            if (cooldown_passed.TotalSeconds < cooldown.TotalSeconds)
-                            {
-                                TimeSpan cooldown_left = cooldown - cooldown_passed;
+                        bot.SendWhisper(message.sender.name, message.command.key + " has a " + cooldown.TotalSeconds.ToString("0.00") + " ms cooldown and can be used in " + cooldown_left.TotalSeconds.ToString("0.00") + " second(s)" );
 
-                                bot.SendWhisper(message.sender.name, $"{message.command.key} has a {cooldown.TotalSeconds.ToString("0.00")} second cooldown and can be used in {cooldown_left.TotalSeconds.ToString("0.00")} second(s)");
+                        continue;
+                    }
+                }                
 
-                                continue;
-                            }
-
-                            if(message.message_type == MessageType.Chat)
-                            {
-                                private_msg_queue.Enqueue(message);
-                            }
-                            else
-                            {
-                                whisper_queue.Enqueue(message);
-                            }                            
-                        }
-                    }                 
+                //everything checks out, enqueue the messahe to be printed
+                if (message.message_type == MessageType.Chat)
+                {
+                    private_msg_queue.Enqueue(message);
+                }
+                else
+                {
+                    whisper_queue.Enqueue(message);
                 }
             }
         }
@@ -335,7 +393,7 @@ namespace TwitchChatBot.Clients
 
                 if (!broadcaster.connection.isConnected())
                 {
-                    BotDebug.Notify("IRC connection for \"" + broadcaster.name + " is lost. Reconnecting...");
+                    DebugBot.PrintLine(DebugMessageType.WARNING, "IRC connection for \"" + broadcaster.name + " is lost. Reconnecting...");
 
                     broadcaster.connection.Connect();
 
@@ -344,7 +402,7 @@ namespace TwitchChatBot.Clients
 
                 if (!irc_message.CheckString())
                 {
-                    BotDebug.Notify("Null message recieved from the IRC connection for \"" + broadcaster.name + "\"");
+                    DebugBot.PrintLine(DebugMessageType.WARNING, "Null message recieved from the IRC connection for \"" + broadcaster.name + "\"");
 
                     broadcaster.connection.writer.WriteLine("PONG");
                     broadcaster.connection.writer.Flush();
@@ -355,7 +413,7 @@ namespace TwitchChatBot.Clients
                 //the irc is pinging the bot to see if it's still there, so we need to respond to it
                 if (irc_message.StartsWith("PING"))
                 {
-                    BotDebug.Notify("\"" + irc_message + "\" recieved from the \"" + broadcaster.name + "\" IRC connection and responded with \"PONG\"");
+                    DebugBot.PrintLine("\"" + irc_message + "\" recieved from the \"" + broadcaster.name + "\" IRC connection and responded with \"PONG\"", ConsoleColor.Yellow);
 
                     broadcaster.connection.writer.WriteLine("PONG");
                     broadcaster.connection.writer.Flush();
@@ -372,92 +430,66 @@ namespace TwitchChatBot.Clients
             {
                 string input = Console.ReadLine();
 
-                Message message = new Message(input, commands, broadcaster.name);
+                Message message = new Message
+                {
+                    key = "PRIVMSG",
+                    body = input,
+
+                    sender = new Sender
+                    {
+                        name = bot.display_name,
+                        user_type = UserType.mod
+                    }
+                };
 
                 bot.SendMessage(broadcaster.name, input);
             }
         }
 
-        /*
-        public void TryFollowerNotification()
+        private void Monitor_Followers()
         {
-            //check for any followers once every 10 seconds even though the API updates once every 60 seconds
-            //don't want to wait another minute if it's because of overhead in the program
-            if(DateTime.Now - last_follower_check < TimeSpan.FromMilliseconds(FOLLOWER_ALERT_DELAY))
+            while (true)
             {
-                return;
-            }
-
-            last_follower_check = DateTime.Now;
-
-            Follower[] followers;
-
-            IEnumerable<string> difference = broadcaster.GetNewFollowers(broadcaster.name, follower_list, out followers);
-
-            if(difference.ToArray().Length == 0)
-            {
-                Debug.PrintLine("No new followers");
-
-                return;
-            }
-
-            foreach (string follower in difference)
-            {
-                //only announce users the first time they follow
-                if (new_follower_display_names_list.Contains(follower))
+                //check for any followers once every 10 seconds even though the API updates once every 60 seconds
+                if (DateTime.Now - last_follower_check < TimeSpan.FromMilliseconds(FOLLOWER_ALERT_DELAY))
                 {
                     continue;
                 }
 
-                Message message = new Message();
+                last_follower_check = DateTime.Now;
 
-                message.room = broadcaster.name;
-                message.sender.name = bot.display_name;
-                message.sender.user_type = UserType.mod;
-                message.body = "Thank for for the follow " + follower + "!";
+                IEnumerable<string> difference = broadcaster.GetNewFollowers(broadcaster.name, ref newest_follower_updated_at, ref followers_at_launch_trie);
 
-                private_msg_queue.Enqueue(message);
+                if (difference.ToArray().Length == 0)
+                {
+                    continue;
+                }
 
-                new_follower_display_names_list.Add(follower);
-            }
+                foreach (string follower in difference)
+                {
+                    Sender _sender = new Sender
+                    {
+                        name = bot.name,
+                        user_type = UserType.mod
+                    };
 
-            follower_list = followers.ToList();
-        }
-        */
+                    Message message = new Message
+                    {
+                        key = "PRIVMSG",
+                        room = broadcaster.name,
+                        body = "Thank you for the follow, " + follower + "!",
+                        sender = _sender,
 
-        public void TryFollowerNotification()
-        {
-            //check for any followers once every 10 seconds even though the API updates once every 60 seconds
-            //don't want to wait another minute if it's because of overhead in the program
-            if (DateTime.Now - last_follower_check < TimeSpan.FromMilliseconds(FOLLOWER_ALERT_DELAY))
-            {
-                return;
-            }
+                        message_type = MessageType.Chat,
+                        command = default(Command)
+                    };
 
-            last_follower_check = DateTime.Now;
-
-            IEnumerable<string> difference = broadcaster.GetNewFollowers(broadcaster.name, followers_at_launch_string, ref followers_added);
-
-            if(difference.ToArray().Length == 0)
-            {
-                BotDebug.PrintLine("No new followers");
-
-                return;
-            }
-
-            foreach(string follower in difference)
-            {
-                Message message = new Message();
-
-                message.room = broadcaster.name;
-                message.sender.name = bot.display_name;
-                message.sender.user_type = UserType.mod;
-                message.body = "Thank for for the follow, " + follower + "!";
-
-                private_msg_queue.Enqueue(message);
-            }
+                    private_msg_queue.Enqueue(message);
+                }
+            }            
         }
 
         #endregion
+
     }
 }

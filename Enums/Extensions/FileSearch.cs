@@ -1,4 +1,4 @@
-﻿namespace TwitchChatBot.Enums.Extensions
+﻿namespace TwitchBot.Enums.Extensions
 {
     enum FileSearch
     {

@@ -67,12 +67,17 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Chat\Commands.cs" />
-    <Compile Include="Chat\Message.cs" />
+    <Compile Include="Helpers\MessageParser.cs" />
     <Compile Include="Chat\SpamFilter.cs" />
+    <Compile Include="Debugger\DebugMessage.cs" />
     <Compile Include="Enums\Chat\SpamSetting.cs" />
     <Compile Include="Enums\Extensions\StringSearch.cs" />
     <Compile Include="Enums\Extensions\WhiteSpace.cs" />
     <Compile Include="Helpers\Paging.cs" />
+    <Compile Include="Helpers\Trie.cs" />
+    <Compile Include="Models\Bot\Chat\Message.cs" />
+    <Compile Include="Models\Bot\Chat\Sender.cs" />
+    <Compile Include="Models\Bot\Login.cs" />
     <Compile Include="Models\Bot\Spam\Blacklist.cs" />
     <Compile Include="Models\Bot\Spam\SpamSettings.cs" />
     <Compile Include="Models\Bot\Spam\ASCII.cs" />
@@ -81,7 +86,6 @@
     <Compile Include="Models\Bot\Spam\Wall.cs" />
     <Compile Include="Chat\Notify.cs" />
     <Compile Include="Chat\Quotes.cs" />
-    <Compile Include="Chat\Sender.cs" />
     <Compile Include="Chat\Variables.cs" />
     <Compile Include="Clients\Bot.cs" />
     <Compile Include="Clients\TwitchClient.cs" />
@@ -91,15 +95,11 @@
     <Compile Include="Debugger\BotDebug.cs" />
     <Compile Include="Enums\Chat\CommandType.cs" />
     <Compile Include="Enums\Chat\ConnectionType.cs" />
-    <Compile Include="Enums\Debug\DebugObject.cs" />
     <Compile Include="Enums\Extensions\FileSearch.cs" />
     <Compile Include="Enums\Chat\MessageType.cs" />
-    <Compile Include="Enums\Debug\DebugMethod.cs" />
-    <Compile Include="Enums\Debug\DebugError.cs" />
     <Compile Include="Enums\Chat\StreamSetting.cs" />
-    <Compile Include="Enums\Debug\SyntaxError.cs" />
     <Compile Include="Enums\Chat\UserType.cs" />
-    <Compile Include="Debugger\ErrorResponse.cs" />
+    <Compile Include="Debugger\DebugError.cs" />
     <Compile Include="Extensions\Files\Files.cs" />
     <Compile Include="Extensions\Universal.cs" />
     <Compile Include="Interfaces\ITwitchUser.cs" />

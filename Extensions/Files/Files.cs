@@ -3,9 +3,9 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 
-using TwitchChatBot.Enums.Extensions;
+using TwitchBot.Enums.Extensions;
 
-namespace TwitchChatBot.Extensions.Files
+namespace TwitchBot.Extensions.Files
 {
     static class FileExtensions
     {

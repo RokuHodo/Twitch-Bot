@@ -1,6 +1,6 @@
 ﻿using RestSharp;
 
-namespace TwitchChatBot.Helpers
+namespace TwitchBot.Helpers
 {   
     class Paging
     {

@@ -1,88 +1,149 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 
-using TwitchChatBot.Clients;
-using TwitchChatBot.Debugger;
-using TwitchChatBot.Extensions;
+using TwitchBot.Clients;
+using TwitchBot.Debugger;
+using TwitchBot.Extensions;
+using TwitchBot.Models.Bot;
 
-using TwitchChatBot.Models.TwitchAPI;
-using System.Linq;
+using Newtonsoft.Json;
 
 /*
-    TODO: - Make quotes non-zero based?
+    TODO: 
+          - Make quotes non-zero based?
           - Have a better !commands command
-          - Make sure all debug and Notify messages are in place
-          - Keep testing follower notificaiton
           - Put in host notifications
 
 */
 
-namespace TwitchChatBot
+namespace TwitchBot
 {
     class Program
-    {
-        static void Main(string[] args)
-        {
-            Console.Title = "Twitch Chat Bot";
+    {       
+        static void Main()
+        {            
+            string LOGIN_PATH = Environment.CurrentDirectory + "/JSON/Login.json";
 
-            string file_path = Environment.CurrentDirectory + "/Login.txt";            
+            Console.Title = "Twitch Bot (...)";            
 
-            string[] login = Load(File.ReadAllLines(file_path));
+            string login_error = string.Empty,
+                   login_preloaded = File.ReadAllText(LOGIN_PATH);
 
-            if(login == null || login.Length != 3)
+            Login login = JsonConvert.DeserializeObject<Login>(login_preloaded);
+
+            if (!CheckLogin_Credentials(login, out login_error))
             {
-                BotDebug.Error($"Failed to load the login information: {login.Length} login credentials found, 3 credentials are required");
-                BotDebug.PrintLine("Bot token, broadcaster token, and a client id");
+                DebugBot.PrintLine(login_error);
 
-                BotDebug.BlankLine();
-                BotDebug.PrintLine("Press any key to exit...");
-                Console.ReadKey();
+                CloseBot();
+            }            
 
-                Environment.Exit(0);
+            TwitchClientOAuth bot_client = new TwitchClientOAuth(login.client_id, login.bot_token),
+                              broadcaster_client = new TwitchClientOAuth(login.client_id, login.broadcaster_token);
+
+            if (!CheckLogin_Clients(bot_client, broadcaster_client, out login_error))
+            {
+                DebugBot.PrintLine(login_error);
+
+                CloseBot();
             }
 
-            TwitchClientOAuth broadcaster = new TwitchClientOAuth(login[2], login[1]);
+            Console.Title = "Twitch Bot (" + bot_client.display_name + ")";
 
-            if (!broadcaster.display_name.CheckString())
-            {
-                BotDebug.Error("Failed to find the broadcaster");
-                BotDebug.BlankLine();
-
-                BotDebug.PrintLine("Press any key to exit...");
-                Console.ReadKey();
-
-                Environment.Exit(0);
-            }   
-                        
-            Bot bot = new Bot(login[0], login[1], broadcaster);
-            bot.JoinChannel(broadcaster.GetAuthenticatedUser().name);
+            Bot bot = new Bot(bot_client, broadcaster_client);
+            bot.JoinChannel(broadcaster_client.GetAuthenticatedUser().name);
+            /*
+            bot.JoinChannel("lethalfrag"); 
+            bot.JoinChannel("peeve"); 
+            bot.JoinChannel("the_happy_hob");
+            bot.JoinChannel("dreadedcone");
+            */
 
             while (true)
             {
-                bot.TrySendingWhisper();
-                bot.TryFollowerNotification();                
-
+                bot.TrySendingWhisper();          
                 bot.TrySendingPrivateMessage();
 
                 Thread.Sleep(100);
             }
-        }       
+        }
 
-        private static string[] Load(string[] login_file)
+        private static bool CheckLogin_Credentials(Login login, out string error)
         {
-            List<string> login_info = new List<string>();
+            error = string.Empty;
 
-            foreach (string line in login_file)
+            if (!login.client_id.CheckString())
             {
-                if (line.CheckString() && !line.StartsWith("//"))
-                {
-                    login_info.Add(line);
-                }                
+                error = "Client ID could not be found";
+
+                return false;
             }
 
-            return login_info.ToArray();
+            if (!login.bot_token.CheckString())
+            {
+                error = "The oauth token for the bot could not be found";
+
+                return false;
+            }
+
+            /*
+            if (!login.bot_token.StartsWith("oauth:"))
+            {
+                error = "The token for the bot must include \"oauth:\"";
+
+                return false;
+            }
+            */
+
+            if (!login.broadcaster_token.CheckString())
+            {
+                error = "The oauth token for the broadcaster could not be found";
+
+                return false;
+            }
+
+
+            /*
+            if (!login.broadcaster_token.StartsWith("oauth:"))
+            {
+                error = "The token for the broadcaster must include \"oauth:\"";
+
+                return false;
+            }
+            */
+
+            return true;
+        }
+
+        private static bool CheckLogin_Clients(TwitchClientOAuth bot, TwitchClientOAuth broadcaster, out string error)
+        {
+            error = string.Empty;
+
+            if (!bot.display_name.CheckString())
+            {
+                error = "The bot client could not be found or does not exist";
+
+                return false;
+            }
+
+            if (!broadcaster.display_name.CheckString())
+            {
+                error = "The broadcaster client could not be found or does not exist";
+
+                return false;
+            }
+
+            return true;
+        }
+
+        private static void CloseBot()
+        {
+            DebugBot.PrintLine("Press any key to exit...");
+
+            Console.ReadKey();
+
+            Environment.Exit(0);
         }
     }    
 }

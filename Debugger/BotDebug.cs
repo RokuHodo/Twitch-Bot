@@ -1,24 +1,51 @@
 ﻿using System;
-
-using TwitchChatBot.Enums.Debug;
-using TwitchChatBot.Extensions;
-
-using System.Reflection;
 using System.Collections;
+using System.Reflection;
 
-namespace TwitchChatBot.Debugger
+
+using TwitchBot.Extensions;
+
+
+
+namespace TwitchBot.Debugger
 {
-    static class BotDebug
+    #region Enums
+
+    public enum DebugMethod
+    {
+        LOAD,
+        ADD,
+        EDIT,
+        REMOVE,
+        UPDATE,
+        MODIFY,        
+        PARSE,
+        APPLY,
+        GET,
+        SERIALIZE
+    }
+
+    public enum DebugMessageType
+    {
+        SUCCESS,
+        WARNING,
+        ERROR,
+        NORMAL
+    }
+
+    #endregion
+
+    static class DebugBot
     {
         public static bool debug = true;
 
-        private static int indent = 0;
+        private static int indent = 0;      
 
         /// <summary>
         /// Declares the start of a new debug block to make sure the indentation is correct.
         /// </summary>
         public static void BlockBegin()
-        {
+        {            
             indent = 0;
         }
 
@@ -28,9 +55,9 @@ namespace TwitchChatBot.Debugger
         public static void BlockEnd()
         {
             indent = 0;
-        }
+        }        
 
-        #region Print custom debug errors
+        #region Print debug errors
 
         /// <summary>
         /// Prints a custom a header to the command line
@@ -51,142 +78,116 @@ namespace TwitchChatBot.Debugger
             PrintLine(header, ConsoleColor.DarkCyan);
         }
 
-        /// <summary>
-        /// Prints a custom success header to the command line
-        /// </summary>
-        /// <param name="header"></param>
-        public static void Success(string text)
-        {            
-            PrintLine(text, ConsoleColor.Green);
+        public static void PrintLine(DebugMessageType debug_message_type, string debug_string)
+        {
+            ConsoleColor color = GetDebugColor(debug_message_type);
+
+            PrintLine(debug_string, color);
         }
 
-        /// <summary>
-        /// Prints a custom failed header to the command line
-        /// </summary>
-        /// <param name="header"></param>
-        public static void Error(string text)
+        public static void PrintLine(DebugMessageType debug_message_type, DebugMethod debug_method, string debug_object, string debug_error = "")
         {
-            PrintLine(text, ConsoleColor.Red);
-        }
+            string message,
+                   template_message = GetDebugStringTemplate(debug_message_type);
 
-        /// <summary>
-        /// Prints a custom warning header to the command line
-        /// </summary>
-        /// <param name="header"></param>
-        public static void Notify(string text)
-        {
-            PrintLine(text, ConsoleColor.Yellow);
-        }
+            ConsoleColor color = GetDebugColor(debug_message_type);
 
-        #endregion
-
-        #region Print debug errors
-
-        /// <summary>
-        /// Prints a success header on a successful operation of adding/editing/removing a command, variable, or quote.
-        /// </summary>
-        /// <param name="operation">The operation what was being performed.</param>
-        /// <param name="debug_object">The object that was operated on.</param>
-        /// <param name="description">String to print in addition to the success message.</param>
-        public static void Success(DebugMethod operation, DebugObject debug_object, string description)
-        {
-            string header = "Successfully ",
-                   operation_string = operation.ToString().ToLower(),
-                   debug_object_string = debug_object.ToString().ToLower().Replace("_", " ");
-
-            switch (operation)
-            {                
-                case DebugMethod.Add:
-                case DebugMethod.Edit:                
-                case DebugMethod.Load:
-                case DebugMethod.PreLoad:                                                    
-                    header += operation_string + "ed the " + debug_object_string;
-                    break;
-                case DebugMethod.Update:
-                case DebugMethod.Remove:
-                case DebugMethod.Separate:
-                case DebugMethod.Serialize:
-                case DebugMethod.Deserialize:
-                case DebugMethod.Modify:
-                case DebugMethod.Retrieve:
-                    header += operation.ToString().ToLower() + "d the " + debug_object_string;
-                    break;
-                case DebugMethod.ParseKVP:
-                    header += "parsed the line into a key value pair";
-                    break;
-                case DebugMethod.ParseString:
-                    header += "parsed the line into a string";
-                    break;
-                default:
-                    header = "";
-                    break;
-            }
-
-            if (header.CheckString())
+            if(debug_message_type == DebugMessageType.WARNING)
             {
-                header += ": " + description;
+                message = string.Format(template_message, debug_object);
             }
-
-            PrintLine(header, ConsoleColor.Green);
-        }
-
-        /// <summary>
-        /// Prints a failed header on a successful operation of adding/editing/removing a command, variable, or quote.
-        /// </summary>
-        /// <param name="operation">The operation what was being performed.</param>
-        /// <param name="debug_object">The object that was operated on.</param>
-        /// <param name="error">The error that occured while trying to perform the operation.</param>
-        public static void Error(DebugMethod operation, DebugObject debug_object, DebugError error)
-        {
-            string header = "Failed to ";
-
-            switch (operation)
+            else
             {
-                case DebugMethod.Add:
-                case DebugMethod.Edit:
-                case DebugMethod.Remove:
-                case DebugMethod.Load:
-                case DebugMethod.PreLoad:
-                case DebugMethod.Separate:
-                case DebugMethod.Serialize:
-                case DebugMethod.Deserialize:
-                case DebugMethod.Update:
-                case DebugMethod.Modify:
-                case DebugMethod.Retrieve:
-                    header += operation.ToString().ToLower() + " the " + debug_object.ToString().Replace("_", " ").ToLower();
-                    break;
-                case DebugMethod.ParseKVP:
-                    header += "parse the line into a key value pair";
-                    break;
-                case DebugMethod.ParseString:
-                    header += "parse the line into a string";
-                    break;
-                default:
-                    header = "";
-                    break;
-            }
-
-            if (header.CheckString())
-            {
-                header += ": " + new ErrorResponse().GetError(error);
+                message = string.Format(template_message, GetMethodString(debug_method), debug_object);
             }            
 
-            PrintLine(header, ConsoleColor.Red);
+            if (debug_error.CheckString())
+            {
+                message += ": " + debug_error;
+            }
+
+            PrintLine(message, color);
         }
 
-        /// <summary>
-        /// Prints a failed header on a successful operation of adding/editing/removing a command, variable, or quote. Used only for syntax errors.
-        /// </summary>
-        /// <param name="operation">The operation what was being performed.</param>
-        /// <param name="debug_object">The object that was operated on.</param>
-        /// <param name="syntax_class">The specific syntax object that was being operated on.</param>
-        /// <param name="error">The error that occured while trying to perform the operation.</param>
-        /// <param name="value">Optional parameter used when a <see cref="Enum"/> range error occurs.</param>
-        public static void SyntaxError(DebugObject debug_object, DebugObject syntax_class, SyntaxError error, int value = 0)
+        public static string GetMethodString(DebugMethod debug_method)
         {
-            string header = "Incorrect " + debug_object.ToString().ToLower() + " syntax: " + syntax_class.ToString().ToLower() + " " + new ErrorResponse().GetError(error, value);
+            string str = debug_method.ToString();
 
-            PrintLine(header, ConsoleColor.Red);
+            if (debug_method == DebugMethod.ADD)
+            {
+                if (str.EndsWith("e"))
+                {
+                    str += "d";
+                }
+                else
+                {
+                    str += "ed";
+                }
+            }            
+
+            return str.ToLower();
+        }
+
+        private static ConsoleColor GetDebugColor(DebugMessageType debug_message_type)
+        {
+            ConsoleColor color;
+
+            switch (debug_message_type)
+            {
+                case DebugMessageType.SUCCESS:
+                    {
+                        color = ConsoleColor.Green;
+                    }
+                    break;
+                case DebugMessageType.WARNING:
+                    {
+                        color = ConsoleColor.Yellow;
+                    }
+                    break;
+                case DebugMessageType.ERROR:
+                    {
+                        color = ConsoleColor.Red;
+                    }
+                    break;
+                default:
+                    {
+                        color = ConsoleColor.Gray;
+                    }                    
+                    break;
+            }
+
+            return color;
+        }
+
+        private static string GetDebugStringTemplate(DebugMessageType debug_message_type)
+        {
+            string template;
+
+            switch (debug_message_type)
+            {
+                case DebugMessageType.SUCCESS:
+                    {
+                        template = DebugMessage.SUCCESS;
+                    }
+                    break;
+                case DebugMessageType.WARNING:
+                    {
+                        template = DebugMessage.WARNING;
+                    }
+                    break;
+                case DebugMessageType.ERROR:
+                    {
+                        template = DebugMessage.ERROR;
+                    }
+                    break;
+                default:
+                    {
+                        template = string.Empty;
+                    }
+                    break;
+            }
+
+            return template;
         }
 
         #endregion

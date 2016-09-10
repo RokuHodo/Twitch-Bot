@@ -1,6 +1,6 @@
 ﻿using RestSharp;
 
-namespace TwitchChatBot.Interfaces
+namespace TwitchBot.Interfaces
 {
     interface ITwitchClient
     {

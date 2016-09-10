@@ -3,7 +3,7 @@ using RestSharp.Deserializers;
 
 using Newtonsoft.Json;
 
-namespace TwitchChatBot.Json
+namespace TwitchBot.Json
 {
     class CustomJsonDeserializer : IDeserializer
     {

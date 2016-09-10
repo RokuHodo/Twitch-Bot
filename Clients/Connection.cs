@@ -2,31 +2,31 @@
 using System.IO;
 using System.Net.Sockets;
 
-using TwitchChatBot.Debugger;
-using TwitchChatBot.Enums.Chat;
+using TwitchBot.Debugger;
+using TwitchBot.Enums.Chat;
 
-namespace TwitchChatBot.Clients
+namespace TwitchBot.Clients
 {
     class Connection
     {
         private const int port = 6667;
 
-        private string ip_address, user_name, user_token;
+        private string ip_address, user_name, oauth_token;
 
         private TcpClient tcp_Client;
 
         public StreamReader reader;
         public StreamWriter writer;
 
-        ConnectionType connection;
+        ConnectionType connection_type;
 
-        public Connection(ConnectionType connection, string user_name, string user_token)
+        public Connection(ConnectionType _connection_type, string _user_name, string _oauth_token)
         {
-            this.user_name = user_name;
-            this.user_token = user_token;
-            this.connection = connection;
+            user_name = _user_name;
+            oauth_token = _oauth_token;
+            connection_type = _connection_type;
 
-            ip_address = GetIP(connection);
+            ip_address = GetIP(connection_type);
 
             Connect();
         }
@@ -61,9 +61,8 @@ namespace TwitchChatBot.Clients
         /// </summary>
         public void Connect()
         {
-            BotDebug.BlankLine();
-            BotDebug.Notify("Connecting to the " + connection.ToString() + " server...");
-            BotDebug.BlankLine();
+            DebugBot.BlankLine();
+            DebugBot.PrintLine("Connecting to the " + connection_type.ToString() + " server for " + user_name + "...", ConsoleColor.Yellow);
 
             tcp_Client = new TcpClient(ip_address, port);
 
@@ -74,7 +73,7 @@ namespace TwitchChatBot.Clients
             writer.AutoFlush = true;
 
             //log into the irc
-            writer.WriteLine("PASS oauth:" + user_token);
+            writer.WriteLine("PASS oauth:" + oauth_token);
             writer.WriteLine("NICK " + user_name);
             writer.WriteLine("USER " + user_name + " 8 * :" + user_name);
 

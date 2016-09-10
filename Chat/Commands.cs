@@ -5,15 +5,14 @@ using System.Net;
 
 using Newtonsoft.Json;
 
-using TwitchChatBot.Debugger;
-using TwitchChatBot.Enums.Chat;
-using TwitchChatBot.Enums.Debug;
-using TwitchChatBot.Enums.Extensions;
-using TwitchChatBot.Extensions;
-using TwitchChatBot.Extensions.Files;
-using TwitchChatBot.Models.Bot;
+using TwitchBot.Debugger;
+using TwitchBot.Enums.Chat;
+using TwitchBot.Enums.Extensions;
+using TwitchBot.Extensions;
+using TwitchBot.Extensions.Files;
+using TwitchBot.Models.Bot.Chat;
 
-namespace TwitchChatBot.Chat
+namespace TwitchBot.Chat
 {
     class Commands
     {
@@ -25,21 +24,17 @@ namespace TwitchChatBot.Chat
 
         public Commands(Variables variables)
         {
-            string commands_preloaded_string;
-
-            List<Command> commands_preloaded_list;
-
             commands_list = new List<Command>();
             commands_dictionary = new Dictionary<string, Command>();            
 
-            BotDebug.BlankLine();
+            DebugBot.BlankLine();
 
-            BotDebug.BlockBegin();
-            BotDebug.Header("Loading Commands");
-            BotDebug.PrintLine("File path:", FILE_PATH);
+            DebugBot.BlockBegin();
+            DebugBot.Header("Loading Commands");
+            DebugBot.PrintLine("File path:", FILE_PATH);
 
-            commands_preloaded_string = File.ReadAllText(FILE_PATH);
-            commands_preloaded_list = JsonConvert.DeserializeObject<List<Command>>(commands_preloaded_string);
+            string commands_preloaded_string = File.ReadAllText(FILE_PATH);
+            List<Command>  commands_preloaded_list = JsonConvert.DeserializeObject<List<Command>>(commands_preloaded_string);
 
             if (commands_preloaded_list != null)
             {
@@ -49,7 +44,7 @@ namespace TwitchChatBot.Chat
                 }
             }
 
-            BotDebug.BlockEnd();
+            DebugBot.BlockEnd();
         }
 
         #region Load commands
@@ -60,32 +55,31 @@ namespace TwitchChatBot.Chat
         /// <param name="command">The command to load.</param>
         private void Load(Command command)
         {
-            BotDebug.BlankLine();
+            DebugBot.BlankLine();
 
-            BotDebug.SubHeader("Loading command...");
+            DebugBot.SubHeader("Loading command...");
 
-            if (!CheckSyntax(command))
+            if (!CheckSyntax(DebugMethod.LOAD, command))
             {
-                BotDebug.Error(DebugMethod.Load, DebugObject.Command, DebugError.Syntax);
-                BotDebug.PrintLine(nameof(command.key), command.key);
-                BotDebug.PrintLine(nameof(command.response), command.response);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.LOAD, nameof(command), DebugError.NORMAL_SYNTAX);
+                DebugBot.PrintObject(command.key);
 
                 return;
             }
 
             if (Exists(command.key))
             {
-                BotDebug.Error(DebugMethod.Load, DebugObject.Command, DebugError.ExistYes);
-                BotDebug.PrintLine(nameof(command.key), command.key);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.LOAD, nameof(command), DebugError.NORMAL_EXISTS_YES);
+                DebugBot.PrintLine(nameof(command.key), command.key);
 
                 return;
             }
 
             if (!command.permission.CheckEnumRange<UserType>())
             {
-                BotDebug.SyntaxError(DebugObject.Command, DebugObject.Setting, SyntaxError.EnumRange, Enum.GetNames(typeof(UserType)).Length);
-                BotDebug.PrintLine(nameof(command.permission), command.permission.ToString());
-                BotDebug.PrintLine(nameof(command.permission) + " set to " + UserType.viewer.ToString());
+                DebugBot.PrintLine(DebugMessageType.WARNING, DebugMethod.LOAD, nameof(command.permission) ,DebugError.NORMAL_OUT_OF_BOUNDS);
+                DebugBot.PrintLine(nameof(command.permission), command.permission.ToString());
+                DebugBot.PrintLine("Setting the " + nameof(command.permission) + " to " + UserType.viewer.ToString());
 
                 command.permission = UserType.viewer;
             }            
@@ -95,14 +89,14 @@ namespace TwitchChatBot.Chat
                 commands_list.Add(command);
                 commands_dictionary.Add(command.key, command);
 
-                BotDebug.Success(DebugMethod.Load, DebugObject.Command, command.key);
-                BotDebug.PrintObject(command);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.LOAD, nameof(command));
+                DebugBot.PrintObject(command);
             }
             catch (Exception exception)
             {
-                BotDebug.Error(DebugMethod.Load, DebugObject.Command, DebugError.Exception);
-                BotDebug.PrintLine(nameof(command.key), command.key);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.WARNING, DebugMethod.LOAD, nameof(command), DebugError.NORMAL_UNKNOWN);
+                DebugBot.PrintLine(nameof(command.key), command.key);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
             }
         }
 
@@ -117,7 +111,7 @@ namespace TwitchChatBot.Chat
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         public void Modify(Variables variables, Message message)
         {
-            string temp = ParseCommandString(message),
+            string temp = ParseAfterCommand(message),
                    key = temp.TextBefore(" ");
 
             message.body = temp.TextAfter(" ");
@@ -141,11 +135,12 @@ namespace TwitchChatBot.Chat
             } 
             catch(Exception exception)
             {
-                BotDebug.Error(DebugMethod.Modify, DebugObject.Command, DebugError.Exception);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
-                BotDebug.PrintLine(nameof(temp), temp);
-                BotDebug.PrintLine(nameof(key), key);
-                BotDebug.PrintLine(nameof(message.body), message.body);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.MODIFY, "command", DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
+
+                DebugBot.PrintLine(nameof(temp), temp);
+                DebugBot.PrintLine(nameof(key), key);
+                DebugBot.PrintLine(nameof(message.body), message.body);
             }            
         }
 
@@ -157,33 +152,38 @@ namespace TwitchChatBot.Chat
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         private void Add(Variables variables, Message message)
         {
-            BotDebug.BlankLine();
-            BotDebug.SubHeader("Adding command...");
+            DebugBot.BlankLine();
+            DebugBot.SubHeader("Adding command...");
 
-            Command command = MessageToCommand(DebugMethod.Add, message, variables);
+            Command command = MessageToCommand(message, variables);
 
             if (command == default(Command))
             {
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.ADD, message, nameof(command), message.body, DebugError.NORMAL_SERIALIZE);
+
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.ADD, nameof(command), DebugError.NORMAL_SERIALIZE);
+                DebugBot.PrintLine(nameof(message.body), message.body);
+
                 return;
             }
 
-            if (!CheckSyntax(command))
+            if (!CheckSyntax(DebugMethod.ADD, command))
             {
-                Notify.Error(DebugMethod.Add, DebugObject.Command, command.key, DebugError.Syntax, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.ADD, message, nameof(command), command.key, DebugError.NORMAL_SYNTAX);
 
-                BotDebug.Error(DebugMethod.Add, DebugObject.Command, DebugError.Syntax);
-                BotDebug.PrintLine(nameof(command.key), command.key);
-                BotDebug.PrintLine(nameof(command.response), command.response);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.ADD, nameof(command), DebugError.NORMAL_SYNTAX);
+                DebugBot.PrintLine(nameof(command.key), command.key);
+                DebugBot.PrintLine(nameof(command.response), command.response);
 
                 return;
             }
 
             if (Exists(command.key))
             {
-                Notify.Error(DebugMethod.Add, DebugObject.Command, command.key, DebugError.ExistYes, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.ADD, message, nameof(command), command.key, DebugError.NORMAL_EXISTS_YES);
 
-                BotDebug.Error(DebugMethod.Add, DebugObject.Command, DebugError.ExistYes);
-                BotDebug.PrintLine(nameof(command.key), command.key);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.ADD, nameof(command), DebugError.NORMAL_EXISTS_YES);
+                DebugBot.PrintLine(nameof(command.key), command.key);
 
                 return;
             }
@@ -192,9 +192,9 @@ namespace TwitchChatBot.Chat
             {
                 int enum_size = Enum.GetNames(typeof(UserType)).Length;
 
-                BotDebug.SyntaxError(DebugObject.Command, DebugObject.Setting, SyntaxError.EnumRange, Enum.GetNames(typeof(UserType)).Length);
-                BotDebug.PrintLine(nameof(command.permission), ((int)command.permission).ToString());
-                BotDebug.PrintLine(nameof(command.permission) + "set to " + UserType.viewer.ToString());
+                DebugBot.PrintLine(DebugMessageType.WARNING, DebugMethod.ADD, nameof(command.permission), DebugError.NORMAL_OUT_OF_BOUNDS);
+                DebugBot.PrintLine(nameof(command.permission), command.permission.ToString());
+                DebugBot.PrintLine("Setting the " + nameof(command.permission) + " to " + UserType.viewer.ToString());
 
                 command.permission = UserType.viewer;
             }
@@ -206,18 +206,18 @@ namespace TwitchChatBot.Chat
 
                 JsonConvert.SerializeObject(commands_list, Formatting.Indented).OverrideFile(FILE_PATH);
 
-                Notify.Success(DebugMethod.Add, DebugObject.Command, command.key, message);
+                Notify.Enqueue(DebugMessageType.SUCCESS, DebugMethod.ADD, message, nameof(command), command.key);
 
-                BotDebug.Success(DebugMethod.Add, DebugObject.Command, command.key);
-                BotDebug.PrintObject(command);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.ADD, nameof(command));
+                DebugBot.PrintObject(command);
             }
             catch (Exception exception)
             {
-                Notify.Error(DebugMethod.Add, DebugObject.Command, command.key, DebugError.Exception, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.ADD, message, nameof(command), command.key, DebugError.NORMAL_EXCEPTION);
 
-                BotDebug.Error(DebugMethod.Add, DebugObject.Command, DebugError.Exception);
-                BotDebug.PrintLine(nameof(command.key), command.key);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.ADD, nameof(command), DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(nameof(command.key), command.key);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
             }
         }
 
@@ -229,27 +229,32 @@ namespace TwitchChatBot.Chat
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         private void Edit(Variables variables, Message message)
         {
-            BotDebug.BlankLine();
-            BotDebug.SubHeader("Editing command...");
+            DebugBot.BlankLine();
+            DebugBot.SubHeader("Editing command...");
 
-            Command command_model = MessageToCommand(DebugMethod.Edit, message, variables);
+            Command command_model = MessageToCommand(message, variables);
 
             if (command_model == default(Command))
             {
-                return;
-            }
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.EDIT, message, nameof(command_model), message.body, DebugError.NORMAL_SERIALIZE);
 
-            string command_preserialized = ParseCommandString(message).PreserializeAs<string>();        
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.EDIT, nameof(command_model), DebugError.NORMAL_SERIALIZE);
+                DebugBot.PrintLine(nameof(message.body), message.body);
+
+                return;
+            }                
                         
             if (!Exists(command_model.key))
             {
-                Notify.Error(DebugMethod.Edit, DebugObject.Command, command_model.key, DebugError.ExistNo, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.EDIT, message, nameof(command_model), command_model.key, DebugError.NORMAL_EXISTS_NO);
 
-                BotDebug.Error(DebugMethod.Edit, DebugObject.Command, DebugError.ExistNo);
-                BotDebug.PrintLine(nameof(command_model.key), command_model.key);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.EDIT, nameof(command_model), DebugError.NORMAL_EXISTS_NO);
+                DebugBot.PrintLine(nameof(command_model.key), command_model.key);
 
                 return;
             }
+
+            string command_preserialized = ParseAfterCommand(message).PreserializeAs<string>();    
 
             Command command = new Command
             {
@@ -261,13 +266,13 @@ namespace TwitchChatBot.Chat
                 cooldown = command_preserialized.Contains("\"cooldown\":") ? command_model.cooldown : commands_dictionary[command_model.key].cooldown
             };
 
-            if (!CheckSyntax(command))
+            if (!CheckSyntax(DebugMethod.EDIT, command))
             {
-                Notify.Error(DebugMethod.Edit, DebugObject.Command, command.key, DebugError.Syntax, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.EDIT, message, nameof(command), command.key, DebugError.NORMAL_SYNTAX);
 
-                BotDebug.Error(DebugMethod.Edit, DebugObject.Command, DebugError.Syntax);
-                BotDebug.PrintLine(nameof(command.key), command.key);
-                BotDebug.PrintLine(nameof(command.response), command.response);                               
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.EDIT, nameof(command), DebugError.NORMAL_SYNTAX);
+                DebugBot.PrintLine(nameof(command.key), command.key);
+                DebugBot.PrintLine(nameof(command.response), command.response);                               
 
                 return;
             }
@@ -276,9 +281,9 @@ namespace TwitchChatBot.Chat
             {
                 int enum_size = Enum.GetNames(typeof(UserType)).Length - 1;
 
-                BotDebug.SyntaxError(DebugObject.Command, DebugObject.Setting, SyntaxError.EnumRange, Enum.GetNames(typeof(UserType)).Length);
-                BotDebug.PrintLine(nameof(command.permission), ((int)command.permission).ToString());
-                BotDebug.PrintLine(nameof(command.permission) + "set to " + commands_dictionary[command_model.key].permission.ToString());
+                DebugBot.PrintLine(DebugMessageType.WARNING, DebugMethod.EDIT, nameof(command.permission), DebugError.NORMAL_OUT_OF_BOUNDS);
+                DebugBot.PrintLine(nameof(command.permission), command.permission.ToString());
+                DebugBot.PrintLine("Setting the " + nameof(command.permission) + " to " + UserType.viewer.ToString());
 
                 command.permission = commands_dictionary[command_model.key].permission;
             }
@@ -292,18 +297,18 @@ namespace TwitchChatBot.Chat
 
                 JsonConvert.SerializeObject(commands_list, Formatting.Indented).OverrideFile(FILE_PATH);
 
-                Notify.Success(DebugMethod.Edit, DebugObject.Command, command.key, message);
+                Notify.Enqueue(DebugMessageType.SUCCESS, DebugMethod.EDIT, message, nameof(command), command.key);
 
-                BotDebug.Success(DebugMethod.Edit, DebugObject.Command, command.key);
-                BotDebug.PrintObject(command);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.EDIT, nameof(command));
+                DebugBot.PrintObject(command);
             }
             catch (Exception exception)
             {
-                Notify.Error(DebugMethod.Edit, DebugObject.Command, command.key, DebugError.Exception, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.EDIT, message, nameof(command), command.key, DebugError.NORMAL_EXCEPTION);
 
-                BotDebug.Error(DebugMethod.Edit, DebugObject.Command, DebugError.Exception);
-                BotDebug.PrintLine(nameof(command.key), command.key);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.EDIT, nameof(command), DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(nameof(command.key), command.key);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
             }
         }
 
@@ -315,32 +320,37 @@ namespace TwitchChatBot.Chat
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         private void Remove(Variables variables, Message message)
         {
-            BotDebug.BlankLine();
-            BotDebug.SubHeader("Removing command...");
+            DebugBot.BlankLine();
+            DebugBot.SubHeader("Removing command...");
 
-            Command command = MessageToCommand(DebugMethod.Remove, message, variables);
+            Command command = MessageToCommand(message, variables);
 
             if (command == default(Command))
             {
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.REMOVE, message, nameof(command), message.body, DebugError.NORMAL_SERIALIZE);
+
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.REMOVE, nameof(command), DebugError.NORMAL_SERIALIZE);
+                DebugBot.PrintLine(nameof(message.body), message.body);
+
                 return;
             }
 
             if (!Exists(command.key))
             {
-                Notify.Error(DebugMethod.Remove, DebugObject.Command, command.key, DebugError.ExistNo, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.REMOVE, message, nameof(command), command.key, DebugError.NORMAL_EXISTS_NO);
 
-                BotDebug.Error(DebugMethod.Remove, DebugObject.Command, DebugError.ExistNo);
-                BotDebug.PrintLine(nameof(command.key), command.key);               
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.REMOVE, nameof(command), DebugError.NORMAL_EXISTS_NO);
+                DebugBot.PrintLine(nameof(command.key), command.key);               
 
                 return;
             }
 
             if (isPermanent(command.key))
             {
-                Notify.Error(DebugMethod.Remove, DebugObject.Command, command.key, DebugError.Permanent, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.REMOVE, message, nameof(command), command.key, DebugError.NORMAL_PERMANENT);
 
-                BotDebug.Error(DebugMethod.Remove, DebugObject.Command, DebugError.Permanent);
-                BotDebug.PrintLine(nameof(command.key), command.key);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.REMOVE, nameof(command), DebugError.NORMAL_PERMANENT);
+                DebugBot.PrintLine(nameof(command.key), command.key);
 
                 return;
             }
@@ -352,18 +362,18 @@ namespace TwitchChatBot.Chat
 
                 JsonConvert.SerializeObject(commands_list, Formatting.Indented).OverrideFile(FILE_PATH);
 
-                Notify.Success(DebugMethod.Remove, DebugObject.Command, command.key, message);
+                Notify.Enqueue(DebugMessageType.SUCCESS, DebugMethod.REMOVE, message, nameof(command), command.key);
 
-                BotDebug.Success(DebugMethod.Remove, DebugObject.Command, command.key);
-                BotDebug.PrintObject(command);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.REMOVE, nameof(command));
+                DebugBot.PrintObject(command);
             }
             catch (Exception exception)
             {
-                Notify.Error(DebugMethod.Remove, DebugObject.Command, command.key, DebugError.Exception, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.REMOVE, message, nameof(command), command.key, DebugError.NORMAL_EXCEPTION);
 
-                BotDebug.Error(DebugMethod.Remove, DebugObject.Command, DebugError.Exception);
-                BotDebug.PrintLine(nameof(command.key), command.key);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.REMOVE, nameof(command), DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(nameof(command.key), command.key);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
             }
         }
 
@@ -378,6 +388,11 @@ namespace TwitchChatBot.Chat
         /// <returns></returns>
         public Command ExtractCommand(string message)
         {
+            if (!message.CheckString())
+            {
+                return default(Command);
+            }
+
             string[] body = message.StringToArray<string>(' ');
 
             foreach (string word in body)
@@ -464,71 +479,73 @@ namespace TwitchChatBot.Chat
         /// </summary>
         /// <param name="command">Command to be checked for proper syntax.</param>
         /// <returns></returns>
-        private bool CheckSyntax(Command command)
+        private bool CheckSyntax(DebugMethod method, Command command)
         {
+            bool pass = true;
+
             if (!command.key.CheckString())
             {
-                BotDebug.SyntaxError(DebugObject.Command, DebugObject.Command, SyntaxError.Null);
-                BotDebug.PrintLine(nameof(command.key), "null");
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(command), DebugError.SYNTAX_NULL);
+                DebugBot.PrintLine(nameof(command.key), "null");
 
-                return false;
+                pass = false;
             }
 
             if (!command.response.CheckString())
             {
-                BotDebug.SyntaxError(DebugObject.Command, DebugObject.Response, SyntaxError.Null);
-                BotDebug.PrintLine(nameof(command.key), command.key);
-                BotDebug.PrintLine(nameof(command.response), "null");
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(command), DebugError.SYNTAX_NULL);
+                DebugBot.PrintLine(nameof(command.key), command.key);
+                DebugBot.PrintLine(nameof(command.response), "null");
 
-                return false;
+                pass = false;
             }
 
             if (!command.key.StartsWith("!"))
             {
-                BotDebug.SyntaxError(DebugObject.Command, DebugObject.Command, SyntaxError.EexclamationPoint);
-                BotDebug.PrintLine(nameof(command.key), command.key);
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(command), DebugError.SYNTAX_EXCLAMATION_POINT_LEAD_YES);
+                DebugBot.PrintLine(nameof(command.key), command.key);
 
-                return false;
+                pass = false;
             }
 
 
             //command needs at least one character after "!"
             if (command.key.Length < 2)
             {
-                BotDebug.SyntaxError(DebugObject.Command, DebugObject.Command, SyntaxError.Length);
-                BotDebug.PrintLine(nameof(command.key), command.key);
-                BotDebug.PrintLine("length", command.key.Length.ToString());
-                BotDebug.PrintLine("minimum length:", "2");
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(command), DebugError.SYNTAX_LENGTH);
+                DebugBot.PrintLine(nameof(command.key), command.key);
+                DebugBot.PrintLine("length", command.key.Length.ToString());
+                DebugBot.PrintLine("minimum length:", "2");
 
-                return false;
+                pass = false;
             }
 
             //check for illegal characters
             if (command.key.Contains("{") || command.key.Contains("}"))
             {
-                BotDebug.SyntaxError(DebugObject.Command, DebugObject.Command, SyntaxError.BracketsNo);
-                BotDebug.PrintLine(nameof(command.key), command.key);
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(command), DebugError.SYNTAX_BRACKETS_NO);
+                DebugBot.PrintLine(nameof(command.key), command.key);
 
-                return false;
+                pass = false;
             }
 
             if (command.key.Contains("[") || command.key.Contains("]"))
             {
-                BotDebug.SyntaxError(DebugObject.Command, DebugObject.Command, SyntaxError.SquareBracketsNo);
-                BotDebug.PrintLine(nameof(command.key), command.key);
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(command), DebugError.SYNTAX_SQUARE_BRACKETS_NO);
+                DebugBot.PrintLine(nameof(command.key), command.key);
 
-                return false;
+                pass = false;
             }
 
             if (command.key.Contains("(") || command.key.Contains(")"))
             {
-                BotDebug.SyntaxError(DebugObject.Command, DebugObject.Command, SyntaxError.ParenthesisNo);
-                BotDebug.PrintLine(nameof(command.key), command.key);
+                DebugBot.PrintLine(DebugMessageType.ERROR, method, nameof(command), DebugError.SYNTAX_PARENTHESIS_NO);
+                DebugBot.PrintLine(nameof(command.key), command.key);
 
-                return false;
+                pass = false;
             }            
 
-            return true;
+            return pass;
         }
 
         #endregion
@@ -557,8 +574,8 @@ namespace TwitchChatBot.Chat
             }
             catch (Exception exception)
             {
-                BotDebug.Error("Failed to get current song: unkown error");
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.ERROR, "Failed to get current song: unkown error");
+                DebugBot.PrintLine(nameof(exception), exception.Message);
 
                 return "Failed to retrieve song data";
             }
@@ -596,8 +613,8 @@ namespace TwitchChatBot.Chat
             {
                 how_long = "Could not retrieve follow time at this time, " + user + " BibleThump";
 
-                BotDebug.Error("Failed to get how long " + user + " has been following " + channel);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.ERROR, "Failed to get how long " + user + " has been following " + channel);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
             }
 
             return how_long;
@@ -615,7 +632,7 @@ namespace TwitchChatBot.Chat
         /// <param name="variables">Parses the response for any valid variables and loads them into the <see cref="Variables.variables_dictionary"/> dictionary.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         /// <returns></returns>
-        private Command MessageToCommand(DebugMethod method, Message message, Variables variables)
+        private Command MessageToCommand(Message message, Variables variables)
         {
             string command_string;
 
@@ -629,13 +646,13 @@ namespace TwitchChatBot.Chat
             {
                 Command command = JsonConvert.DeserializeObject<Command>(command_string);
 
-                BotDebug.Success(DebugMethod.Serialize, DebugObject.Command, command.key);
-                BotDebug.PrintObject(command);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.SERIALIZE, nameof(command));
+                DebugBot.PrintObject(command);
 
                 foreach (Variable variable in variable_array)
                 {
-                    BotDebug.BlankLine();
-                    BotDebug.SubHeader("Adding variable...");
+                    DebugBot.BlankLine();
+                    DebugBot.SubHeader("Adding variable...");
 
                     variables.Add(variable, message);
                 }
@@ -643,52 +660,13 @@ namespace TwitchChatBot.Chat
                 return command; 
             }
             catch (Exception exception)
-            {
-                Notify.Error(method, DebugObject.Command, command_string, DebugError.Exception, message);
-
-                BotDebug.Error(DebugMethod.Serialize, DebugObject.Command, DebugError.Exception);
-                BotDebug.Error(method, DebugObject.Command, DebugError.Null);
-                BotDebug.PrintLine(nameof(command_string), command_string);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+            {                
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.SERIALIZE, nameof(command_string), DebugError.NORMAL_EXCEPTION);              
+                DebugBot.PrintLine(nameof(command_string), command_string);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
 
                 return default(Command);
             }
-        }
-
-        /// <summary>
-        /// Parses the body of a <see cref="Message"/> after the command and returns a <see cref="KeyValuePair{TKey, TValue}"/>.
-        /// The first word after the command is the <code>Key</code> and evertything after the <code>TKey</code> is the <code>TValue</code>.
-        /// </summary>
-        /// <param name="message">Contains the body and command of the message that is parsed.</param>
-        /// <returns></returns>
-        public KeyValuePair<string, string> ParseCommandKVP(Message message)
-        {
-            int parse_start, parse_end;
-
-            string key = "",
-                   value = "";
-
-            //parse the message for the command key
-            parse_start = message.body.IndexOf(message.command.key) + message.command.key.Length + 1;
-            parse_end = message.body.Substring(parse_start).IndexOf(" ") + parse_start;
-
-            try
-            {
-                key = message.body.Substring(parse_start, parse_end - parse_start);
-                value = message.body.Substring(parse_end + 1);
-
-                BotDebug.Success(DebugMethod.ParseKVP, DebugObject.Command, message.body);
-                BotDebug.PrintLine(nameof(key), key);
-                BotDebug.PrintLine(nameof(value), value);
-            }
-            catch (Exception exception)
-            {
-                BotDebug.Error(DebugMethod.ParseKVP, DebugObject.Command, DebugError.Exception);
-                BotDebug.PrintLine(nameof(message.body), message.body);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
-            }
-
-            return new KeyValuePair<string, string>(key, value);
         }
 
         /// <summary>
@@ -696,7 +674,7 @@ namespace TwitchChatBot.Chat
         /// </summary>
         /// <param name="message">Contains the body and command of the message that is parsed.</param>
         /// <returns></returns>
-        public string ParseCommandString(Message message)
+        public string ParseAfterCommand(Message message)
         {
             string result = string.Empty;
 
@@ -705,14 +683,14 @@ namespace TwitchChatBot.Chat
                 result = message.body.TextAfter(message.command.key);
                 result = result.RemoveWhiteSpace(WhiteSpace.Left);
 
-                BotDebug.Success(DebugMethod.ParseString, DebugObject.Command, message.body);
-                BotDebug.PrintLine(nameof(result), result);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.PARSE, nameof(message) + " after the command");
+                DebugBot.PrintLine(nameof(result), result);
             }
             catch (Exception exception)
             {
-                BotDebug.Error(DebugMethod.ParseString, DebugObject.Command, DebugError.Exception);
-                BotDebug.PrintLine(nameof(message.body), message.body);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.PARSE, nameof(message) + " after the command", DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(nameof(message.body), message.body);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
             }
 
             return result;
@@ -738,8 +716,8 @@ namespace TwitchChatBot.Chat
         {
             if (!Exists(command.key))
             {
-                BotDebug.Error(DebugMethod.Edit, DebugObject.Command, DebugError.ExistNo);
-                BotDebug.PrintLine("Failed to set last time used");
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.EDIT, nameof(command), DebugError.NORMAL_EXISTS_NO);
+                DebugBot.PrintLine("Failed to set last time used");
             }
 
             commands_dictionary[command.key].last_used = DateTime.Now;

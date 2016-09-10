@@ -2,20 +2,20 @@
 
 using RestSharp;
 
-using TwitchChatBot.Debugger;
-using TwitchChatBot.Enums.Chat;
-using TwitchChatBot.Enums.Debug;
-using TwitchChatBot.Extensions;
-using TwitchChatBot.Chat;
-using TwitchChatBot.Interfaces;
-using TwitchChatBot.Models.TwitchAPI;
+using TwitchBot.Debugger;
+using TwitchBot.Enums.Chat;
+using TwitchBot.Extensions;
+using TwitchBot.Chat;
+using TwitchBot.Interfaces;
+using TwitchBot.Models.TwitchAPI;
+using TwitchBot.Models.Bot.Chat;
 
-namespace TwitchChatBot.Clients
+namespace TwitchBot.Clients
 {
     class TwitchClientOAuth : TwitchClient, ITwitchClient
     {
         private string client_id,
-                       user_token;
+                       oauth_token;
 
         public string name,
                       display_name;
@@ -25,12 +25,12 @@ namespace TwitchChatBot.Clients
         public TwitchClientOAuth(string _client_id, string _user_token) : base()
         {
             client_id = _client_id;
-            user_token = _user_token;
+            oauth_token = _user_token;
 
             name = GetAuthenticatedUser().name;
             display_name = GetAuthenticatedUser().display_name;
 
-            connection = new Connection(ConnectionType.Chat, name, _user_token);
+            connection = new Connection(ConnectionType.Chat, name, oauth_token);
         }
 
         /// <summary>
@@ -303,47 +303,43 @@ namespace TwitchChatBot.Clients
         /// Note: The broadcaster must be a partner to set a delay.
         /// Requires the "channel_editor" scope.
         /// </summary>
-        /// <param name="settings">Stream setting to update.</param>
+        /// <param name="stream_setting">Stream setting to update.</param>
         /// <param name="commands">Parses the body of a <see cref="Message"/> after the command and returns a <see cref="string"/>.</param>
         /// <param name="message">The message to be parsed for the new stream setting.</param>
-        public void UpdateStream(StreamSetting settings, Commands commands, Message message)
+        public void UpdateStream(StreamSetting stream_setting, Commands commands, Message message)
         {
-            string setting = settings.ToString(),
-                   value = commands.ParseCommandString(message);
-
-            DebugObject debug_setting;
-
-            Enum.TryParse(setting, out debug_setting);
+            string value = commands.ParseAfterCommand(message);
 
             if (!value.CheckString())
             {
-                Notify.Error(DebugMethod.Update, DebugObject.Setting, setting, DebugError.Null, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.UPDATE, message, "stream setting", stream_setting.ToString(), DebugError.NORMAL_NULL);
 
-                BotDebug.Error(DebugMethod.Update, debug_setting, DebugError.Null);
-                BotDebug.PrintLine("stream setting", setting.ToString());
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.UPDATE, nameof(stream_setting), DebugError.NORMAL_NULL);
+                DebugBot.PrintLine(nameof(stream_setting), stream_setting.ToString());
+                DebugBot.PrintLine(nameof(value), "null");
 
                 return;
             }
 
-            if (settings == StreamSetting.Delay)
+            if (stream_setting == StreamSetting.Delay)
             {
                 if (!value.CanCovertTo<double>())
                 {
-                    Notify.Error(DebugMethod.Update, DebugObject.Setting, setting, DebugError.Convert, message);
+                    Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.UPDATE, message, "stream setting", stream_setting.ToString(), DebugError.NORMAL_CONVERT);
 
-                    BotDebug.Error(DebugMethod.Update, debug_setting, DebugError.Convert);
-                    BotDebug.PrintLine(nameof(value), value);
-                    BotDebug.PrintLine(nameof(value) + " type", value.GetType().Name.ToLower());
-                    BotDebug.PrintLine("supported type", typeof(double).Name);
+                    DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.UPDATE, nameof(stream_setting), DebugError.NORMAL_CONVERT);
+                    DebugBot.PrintLine(nameof(value), value);
+                    DebugBot.PrintLine(nameof(value) + " type", value.GetType().Name.ToLower());
+                    DebugBot.PrintLine("supported type", typeof(double).Name);
 
                     return;
                 }
 
                 if (!isPartner(name))
                 {
-                    Notify.SendWhisper(message, "Failed to update the " + setting + ": " + name + " is not a partner");
+                    Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.UPDATE, message, "stream setting", stream_setting.ToString(), display_name + " is not a partner");
 
-                    BotDebug.Error("Failed to update the " + setting + ": " + name + " is not a partner");
+                    DebugBot.PrintLine(DebugMessageType.ERROR, "Failed to update the " + stream_setting.ToString() + ": " + display_name + " is not a partner");
 
                     return;
                 }
@@ -351,7 +347,7 @@ namespace TwitchChatBot.Clients
 
             try
             {
-                switch (settings)
+                switch (stream_setting)
                 {
                     case StreamSetting.Delay:
                         SetDelay(display_name.ToLower(), value);
@@ -372,19 +368,19 @@ namespace TwitchChatBot.Clients
                         break;
                 }
 
-                Notify.Success(DebugMethod.Update, DebugObject.Setting, setting, message);
+                Notify.Enqueue(DebugMessageType.SUCCESS, DebugMethod.UPDATE, message, "stream setting", stream_setting.ToString());
 
-                BotDebug.Success(DebugMethod.Update, debug_setting, setting);
-                BotDebug.PrintLine(nameof(display_name), display_name);
-                BotDebug.PrintLine(nameof(value), value);
+                DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.UPDATE, nameof(stream_setting));
+                DebugBot.PrintLine(nameof(stream_setting), stream_setting.ToString());                
+                DebugBot.PrintLine(nameof(value), value);
             }
             catch(Exception exception)
             {
-                Notify.Error(DebugMethod.Update, DebugObject.Setting, setting, DebugError.Exception, message);
+                Notify.Enqueue(DebugMessageType.ERROR, DebugMethod.UPDATE, message, "stream setting", stream_setting.ToString(), DebugError.NORMAL_EXCEPTION);
 
-                BotDebug.Error(DebugMethod.Update, DebugObject.Setting, DebugError.Exception);
-                BotDebug.PrintLine(nameof(setting), setting);
-                BotDebug.PrintLine(nameof(exception), exception.Message);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.UPDATE, nameof(stream_setting), DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(nameof(stream_setting), stream_setting.ToString());
+                DebugBot.PrintLine(nameof(exception), exception.Message);
             }            
         }
 
@@ -402,7 +398,8 @@ namespace TwitchChatBot.Clients
             RestRequest request = new RestRequest(url, method);
 
             request.AddHeader("Client-ID", client_id);
-            request.AddHeader("Authorization", string.Format("OAuth {0}", user_token));
+            request.AddHeader("Authorization", string.Format("OAuth {0}", oauth_token));
+            request.AddQueryParameter("noCache", DateTime.Now.Ticks.ToString());
 
             return request;
         }
