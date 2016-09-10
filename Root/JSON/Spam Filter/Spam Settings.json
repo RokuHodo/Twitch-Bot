@@ -1,5 +1,5 @@
 {
-  "enabled": false,
+  "enabled": true,
   "permission": 1,
   "timeouts": [
     1,
@@ -10,9 +10,9 @@
     680
   ],
   "Caps": {
-    "enabled": true,
-    "length": 10,
-    "percent": 50,
+    "enabled": false,
+    "length": 20,
+    "percent": 75,
     "permission": 1
   },
   "Links": {

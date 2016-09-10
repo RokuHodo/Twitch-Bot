@@ -5,7 +5,7 @@
     "permanent": true,
     "permission": 1,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "0001-01-01T00:00:00"
   },
   {
@@ -14,7 +14,7 @@
     "permanent": true,
     "permission": 1,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "2016-08-13T17:04:57.0021854-04:00"
   },
   {
@@ -23,7 +23,7 @@
     "permanent": true,
     "permission": 0,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "2016-08-13T17:03:31.8843681-04:00"
   },
   {
@@ -32,7 +32,7 @@
     "permanent": true,
     "permission": 0,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "2016-08-13T17:03:34.5441787-04:00"
   },
   {
@@ -41,7 +41,7 @@
     "permanent": true,
     "permission": 1,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "0001-01-01T00:00:00"
   },
   {
@@ -50,7 +50,7 @@
     "permanent": true,
     "permission": 1,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "0001-01-01T00:00:00"
   },
   {
@@ -59,7 +59,7 @@
     "permanent": true,
     "permission": 1,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "0001-01-01T00:00:00"
   },
   {
@@ -68,7 +68,7 @@
     "permanent": true,
     "permission": 1,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "2016-08-13T17:04:55.4858562-04:00"
   },
   {
@@ -77,7 +77,7 @@
     "permanent": true,
     "permission": 0,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "2016-08-13T17:03:49.4863006-04:00"
   },
   {
@@ -86,7 +86,7 @@
     "permanent": true,
     "permission": 0,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "2016-08-13T17:03:52.0361366-04:00"
   },
   {
@@ -95,7 +95,7 @@
     "permanent": true,
     "permission": 0,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "2016-08-13T17:03:55.8534418-04:00"
   },
   {
@@ -104,7 +104,7 @@
     "permanent": true,
     "permission": 0,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "2016-08-13T17:03:59.5093843-04:00"
   },
   {
@@ -113,16 +113,16 @@
     "permanent": false,
     "permission": 0,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "2016-08-13T17:04:02.5936286-04:00"
   },
   {
     "key": "!pc",
-    "response": "PC: http://pcpartpicker.com/p/DCnqD3",
+    "response": "PC: http://pcpartpicker.com/list/TZ7zf8",
     "permanent": false,
     "permission": 0,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "2016-08-13T17:04:04.1999543-04:00"
   },
   {
@@ -131,7 +131,7 @@
     "permanent": false,
     "permission": 0,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "2016-08-13T17:04:06.5079404-04:00"
   },
   {
@@ -140,7 +140,7 @@
     "permanent": false,
     "permission": 0,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "2016-08-13T17:04:09.1178227-04:00"
   },
   {
@@ -149,7 +149,7 @@
     "permanent": false,
     "permission": 0,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "2016-08-13T17:04:12.4485568-04:00"
   },
   {
@@ -158,7 +158,7 @@
     "permanent": false,
     "permission": 0,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "2016-08-13T17:04:13.2524353-04:00"
   },
   {
@@ -167,7 +167,7 @@
     "permanent": false,
     "permission": 0,
     "type": 0,
-    "cooldown": 10.0,
+    "cooldown": 10000,
     "last_used": "2016-08-13T17:04:16.7670026-04:00"
   },
   {
@@ -176,7 +176,7 @@
     "permanent": false,
     "permission": 0,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "0001-01-01T00:00:00"
   },
   {
@@ -185,7 +185,7 @@
     "permanent": false,
     "permission": 0,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "2016-08-13T17:04:18.9776333-04:00"
   },
   {
@@ -194,7 +194,7 @@
     "permanent": true,
     "permission": 0,
     "type": 0,
-    "cooldown": 0.0,
+    "cooldown": 0,
     "last_used": "0001-01-01T00:00:00"
   }
 ]
