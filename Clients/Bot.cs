@@ -51,7 +51,6 @@ namespace TwitchBot.Clients
 
             bot = _bot;
             Notify.SetBot(bot);
-            Notify.SetQueues(private_msg_queue, whisper_queue);
 
             broadcaster = _broadcaster;
 
@@ -82,6 +81,7 @@ namespace TwitchBot.Clients
 
             whisper_queue = new Queue<Message>();
             private_msg_queue = new Queue<Message>();
+            Notify.SetQueues(ref private_msg_queue, ref whisper_queue);
 
             //get the list of all users following the broadcaster
             followers_at_launch_IE = broadcaster.GetFollowers_All(broadcaster.name).ToList();
