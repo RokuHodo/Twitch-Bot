@@ -75,7 +75,8 @@
     <Compile Include="Enums\Extensions\WhiteSpace.cs" />
     <Compile Include="Helpers\Paging.cs" />
     <Compile Include="Helpers\Trie.cs" />
-    <Compile Include="Models\Bot\Chat\Message.cs" />
+    <Compile Include="Helpers\IRCMessage.cs" />
+    <Compile Include="Helpers\TwitchMessage.cs" />
     <Compile Include="Models\Bot\Chat\Sender.cs" />
     <Compile Include="Models\Bot\Login.cs" />
     <Compile Include="Models\Bot\Spam\Blacklist.cs" />

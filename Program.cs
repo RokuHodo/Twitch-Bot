@@ -53,12 +53,7 @@ namespace TwitchBot
 
             Bot bot = new Bot(bot_client, broadcaster_client);
             bot.JoinChannel(broadcaster_client.GetAuthenticatedUser().name);
-            /*
-            bot.JoinChannel("lethalfrag"); 
-            bot.JoinChannel("peeve"); 
-            bot.JoinChannel("the_happy_hob");
-            bot.JoinChannel("dreadedcone");
-            */
+            //bot.JoinChannel("lobosjr");
 
             while (true)
             {

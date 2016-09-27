@@ -6,7 +6,7 @@ namespace TwitchBot.Models.TwitchAPI
     class Follower
     {
         [JsonProperty("created_at")]
-        public DateTime CreatedAt { get; set; }
+        public DateTime created_at { get; set; }
 
         [JsonProperty("_links")]
         public Links _links { get; set; }

@@ -8,7 +8,7 @@ using TwitchBot.Extensions;
 using TwitchBot.Chat;
 using TwitchBot.Interfaces;
 using TwitchBot.Models.TwitchAPI;
-using TwitchBot.Models.Bot.Chat;
+using TwitchBot.Helpers;
 
 namespace TwitchBot.Clients
 {
@@ -22,7 +22,7 @@ namespace TwitchBot.Clients
 
         public Connection connection;
                 
-        public TwitchClientOAuth(string _client_id, string _user_token) : base()
+        public TwitchClientOAuth(string _client_id, string _user_token) : base(_client_id)
         {
             client_id = _client_id;
             oauth_token = _user_token;
@@ -38,9 +38,9 @@ namespace TwitchBot.Clients
         /// </summary>
         public User GetAuthenticatedUser()
         {
-            var request = Request("user", Method.GET);
+            RestRequest request = Request("user", Method.GET);
 
-            var response = client.Execute<User>(request);
+            IRestResponse<User> response = client.Execute<User>(request);
 
             return response.Data;            
         }
@@ -208,7 +208,7 @@ namespace TwitchBot.Clients
         /// <param name="message_type">The type of message to be sent.</param>
         /// <param name="message">MEssage thaty contains the information in order to send the chat message or whisper</param>
         /// <param name="message_or_whisper">The message to be sent as a whisper or a chat message.</param>
-        public void SendResponse(MessageType message_type, Message message, string message_or_whisper)
+        public void SendResponse(MessageType message_type, TwitchMessage message, string message_or_whisper)
         {
             if(message_type == MessageType.Chat)
             {
@@ -304,9 +304,9 @@ namespace TwitchBot.Clients
         /// Requires the "channel_editor" scope.
         /// </summary>
         /// <param name="stream_setting">Stream setting to update.</param>
-        /// <param name="commands">Parses the body of a <see cref="Message"/> after the command and returns a <see cref="string"/>.</param>
+        /// <param name="commands">Parses the body of a <see cref="TwitchMessage"/> after the command and returns a <see cref="string"/>.</param>
         /// <param name="message">The message to be parsed for the new stream setting.</param>
-        public void UpdateStream(StreamSetting stream_setting, Commands commands, Message message)
+        public void UpdateStream(StreamSetting stream_setting, Commands commands, TwitchMessage message)
         {
             string value = commands.ParseAfterCommand(message);
 

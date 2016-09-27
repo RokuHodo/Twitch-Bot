@@ -98,7 +98,7 @@ namespace TwitchBot.Debugger
             }
             else
             {
-                message = string.Format(template_message, GetMethodString(debug_method), debug_object);
+                message = string.Format(template_message, GetMethodString(debug_message_type, debug_method), debug_object);
             }            
 
             if (debug_error.CheckString())
@@ -109,21 +109,48 @@ namespace TwitchBot.Debugger
             PrintLine(message, color);
         }
 
-        public static string GetMethodString(DebugMethod debug_method)
+        public static string GetMethodString(DebugMessageType debug_method_type, DebugMethod debug_method)
         {
             string str = debug_method.ToString();
 
-            if (debug_method == DebugMethod.ADD)
+            if(debug_method_type == DebugMessageType.SUCCESS)
             {
-                if (str.EndsWith("e"))
+                switch (debug_method)
                 {
-                    str += "d";
+                    //anything that ends in a consonant 
+                    case DebugMethod.ADD:
+                    case DebugMethod.EDIT:
+                    case DebugMethod.LOAD:
+                        {
+                            str += "ed";
+                        }
+                        break;
+                    //anything that ends in a vowel
+                    case DebugMethod.PARSE:
+                    case DebugMethod.REMOVE:
+                    case DebugMethod.SERIALIZE:
+                    case DebugMethod.UPDATE:
+                        {
+                            str += "d";
+                        }
+                        break;
+                    //anything that ends in "y"
+                    case DebugMethod.MODIFY:
+                    case DebugMethod.APPLY:
+                        {
+                            str = str.TextBefore("y") + "ied";
+                        }
+                        break;
+                    //any special verbs
+                    case DebugMethod.GET:
+                        {
+                            str = "got";
+                        }
+                        break;
+                    default:
+                        break;
                 }
-                else
-                {
-                    str += "ed";
-                }
-            }            
+            }           
 
             return str.ToLower();
         }

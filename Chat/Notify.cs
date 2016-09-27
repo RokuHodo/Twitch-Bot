@@ -6,6 +6,7 @@ using TwitchBot.Clients;
 using TwitchBot.Models.Bot.Chat;
 using TwitchBot.Debugger;
 using TwitchBot.Extensions;
+using TwitchBot.Helpers;
 
 namespace TwitchBot.Chat
 {
@@ -13,7 +14,7 @@ namespace TwitchBot.Chat
     {
         static TwitchClientOAuth bot;
 
-        static Queue<Message> priv_msg_queue, whisper_queue;
+        static Queue<TwitchMessage> priv_msg_queue, whisper_queue;
 
         public static void SetBot(TwitchClientOAuth _bot)
         {
@@ -25,33 +26,33 @@ namespace TwitchBot.Chat
             return bot;
         }
 
-        public static void SetQueues(Queue<Message> _priv_msg_queue, Queue<Message> _whisper_queue)
+        public static void SetQueues(ref Queue<TwitchMessage> _priv_msg_queue, ref Queue<TwitchMessage> _whisper_queue)
         {
             priv_msg_queue = _priv_msg_queue;
             whisper_queue = _whisper_queue;
         }        
 
-        public static void SendMessage(Message message, string response)
+        public static void SendMessage(TwitchMessage message, string response)
         {
             SendResponse(MessageType.Chat, message, response);
         }
 
-        public static void SendWhisper(Message message, string whisper)
+        public static void SendWhisper(TwitchMessage message, string whisper)
         {
             SendResponse(MessageType.Whisper, message, whisper);
         }
 
-        private static void SendResponse(MessageType message_type, Message message, string response)
+        private static void SendResponse(MessageType message_type, TwitchMessage message, string response)
         {
             GetBot().SendResponse(message_type, message, response);
         }
 
-        public static void Enqueue(DebugMessageType debug_message_type, DebugMethod method, Message template, string notify_object, string object_name = "", string error = "")
+        public static void Enqueue(DebugMessageType debug_message_type, DebugMethod method, TwitchMessage template, string notify_object, string object_name = "", string error = "")
         {
             string body = string.Empty,
-                   method_string = DebugBot.GetMethodString(method);
+                   method_string = DebugBot.GetMethodString(debug_message_type, method);
 
-            Queue<Message> queue = priv_msg_queue;
+            Queue<TwitchMessage> queue = priv_msg_queue;
 
             MessageType _message_type = MessageType.Chat;
 
@@ -102,12 +103,10 @@ namespace TwitchBot.Chat
                 body += ": " + error;
             }            
 
-            string _key = _message_type == MessageType.Chat ? "PRIVMSG" : "WHISPER";
-
-            Message message = new Message
+            TwitchMessage message = new TwitchMessage
             {
-                key = _key,
                 room = template.room,
+                body = body,
                 message_type = _message_type,
                 sender = _sender,
                 command = default(Command)

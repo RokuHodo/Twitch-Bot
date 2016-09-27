@@ -10,6 +10,7 @@ using TwitchBot.Enums.Extensions;
 using TwitchBot.Extensions;
 using TwitchBot.Extensions.Files;
 using TwitchBot.Models.Bot.Chat;
+using TwitchBot.Helpers;
 
 namespace TwitchBot.Chat
 {
@@ -99,7 +100,7 @@ namespace TwitchBot.Chat
         /// </summary>
         /// <param name="commands">Used for parsing the body.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        public void Modify(Commands commands, Message message, TwitchClientOAuth broadcaster, TwitchClientOAuth bot)
+        public void Modify(Commands commands, TwitchMessage message, TwitchClientOAuth broadcaster, TwitchClientOAuth bot)
         {
             string temp = commands.ParseAfterCommand(message),
                    key = temp.TextBefore(" ");
@@ -135,13 +136,13 @@ namespace TwitchBot.Chat
         }
 
         /// <summary>
-        /// Parses the <see cref="Message.body"/> of a message and adds a <see cref="Quote"/> and adds it to the <see cref="quotes"/> list to be called in real time.
+        /// Parses the <see cref="TwitchMessage.body"/> of a message and adds a <see cref="Quote"/> and adds it to the <see cref="quotes"/> list to be called in real time.
         /// Called by the user from Twitch chat by using the "!addquote" command.
         /// </summary>
         /// <param name="commands">Used to parse the message for the quote.</param>        
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         /// <param name="broadcaster">Coontains the broadcaster name to be appended to the end of the quote</param>
-        public void Add(Message message, TwitchClientOAuth broadcaster)
+        public void Add(TwitchMessage message, TwitchClientOAuth broadcaster)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Adding quote...");
@@ -189,7 +190,7 @@ namespace TwitchBot.Chat
             }
         }
 
-        public void Edit(Message message, TwitchClientOAuth broadcaster)
+        public void Edit(TwitchMessage message, TwitchClientOAuth broadcaster)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Editing quote...");                        
@@ -254,7 +255,7 @@ namespace TwitchBot.Chat
             }
         }
 
-        private void Remove(Message message)
+        private void Remove(TwitchMessage message)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Removing quote...");
@@ -310,7 +311,7 @@ namespace TwitchBot.Chat
         /// Gets a random <see cref="Quote"/> from the <see cref="quotes"/> list.
         /// </summary>
         /// <returns></returns>
-        public string GetQuote(Message message)
+        public string GetQuote(TwitchMessage message)
         {
             int index;
 
@@ -400,7 +401,7 @@ namespace TwitchBot.Chat
 
         #region String parsing
 
-        private int GetIndex(Message message)
+        private int GetIndex(TwitchMessage message)
         {
             int index = -1;
 
@@ -431,11 +432,11 @@ namespace TwitchBot.Chat
         /// 
         /// </summary>
         /// <param name="method">The type of operation being performed.</param>
-        /// <param name="commands">Used to parse the <see cref="Message.body"/> for the quote.</param>
+        /// <param name="commands">Used to parse the <see cref="TwitchMessage.body"/> for the quote.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         /// <param name="broadcaster">Contains the name of the broadcaster to be appended to the end of the quote.</param>
         /// <returns></returns>
-        private Quote MessageToQuote(Message message, TwitchClientOAuth broadcaster)
+        private Quote MessageToQuote(TwitchMessage message, TwitchClientOAuth broadcaster)
         {
             string quote_string = message.body;
 

@@ -9,6 +9,7 @@ using TwitchBot.Enums.Extensions;
 using TwitchBot.Extensions;
 using TwitchBot.Extensions.Files;
 using TwitchBot.Models.Bot.Chat;
+using TwitchBot.Helpers;
 
 namespace TwitchBot.Chat
 {
@@ -106,7 +107,7 @@ namespace TwitchBot.Chat
         /// </summary>
         /// <param name="commands">Used for parsing the body.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        public void Modify(Commands commands, Message message)
+        public void Modify(Commands commands, TwitchMessage message)
         {
             string temp = commands.ParseAfterCommand(message),
                    key = temp.TextBefore(" ");
@@ -140,7 +141,7 @@ namespace TwitchBot.Chat
             }
         }
 
-        private void Add(Commands commands, Message message)
+        private void Add(Commands commands, TwitchMessage message)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Adding variable...");
@@ -158,7 +159,7 @@ namespace TwitchBot.Chat
         /// </summary>
         /// <param name="variable">Variable to be added</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        public void Add(Variable variable, Message message)
+        public void Add(Variable variable, TwitchMessage message)
         {           
             if (variable == default(Variable))
             {
@@ -216,7 +217,7 @@ namespace TwitchBot.Chat
         /// </summary>
         /// <param name="variable">Variable key to be edited.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        private void Edit(Message message)
+        private void Edit(TwitchMessage message)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Editing variable...");
@@ -283,7 +284,7 @@ namespace TwitchBot.Chat
         /// </summary>
         /// <param name="variable">Variable key to be removed.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        private void Remove(Message message)
+        private void Remove(TwitchMessage message)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Removing variable...");
@@ -451,10 +452,10 @@ namespace TwitchBot.Chat
         /// Returns default <see cref="Variable"/> if the message could not be converted.
         /// </summary>
         /// <param name="method">The type of operation being performed.</param>
-        /// <param name="commands">Parses the body of a <see cref="Message"/> after the command and returns a <see cref="string"/> to be processed as a <see cref="Variable"/>.</param>
+        /// <param name="commands">Parses the body of a <see cref="TwitchMessage"/> after the command and returns a <see cref="string"/> to be processed as a <see cref="Variable"/>.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         /// <returns></returns>
-        private Variable MessageToVariable(Message message)
+        private Variable MessageToVariable(TwitchMessage message)
         {
             string variable_string = message.body;
 
@@ -481,13 +482,13 @@ namespace TwitchBot.Chat
 
         /// <summary>
         /// Converts a custom string into a <see cref="Variable"/> and returns the variable.
-        /// Called from <see cref="ExtractVariables(string, Message, out Variable[])"/>.
+        /// Called from <see cref="ExtractVariables(string, TwitchMessage, out Variable[])"/>.
         /// Returns default <see cref="Variable"/> if the message could not be converted.
         /// </summary>
         /// <param name="method">The type of operation being performed.</param>
         /// <param name="variable_string">The string to be converted and serialized into a variable</param>
         /// <returns></returns>
-        private Variable MessageToVariable(DebugMethod method, Message message, string variable_string)
+        private Variable MessageToVariable(DebugMethod method, TwitchMessage message, string variable_string)
         {
             variable_string = variable_string.PreserializeAs<string>();
 
@@ -515,15 +516,15 @@ namespace TwitchBot.Chat
         }
 
         /// <summary>
-        /// Loops through the body of the <see cref="Message"/> and attempts to add any variables found.
+        /// Loops through the body of the <see cref="TwitchMessage"/> and attempts to add any variables found.
         /// Returns the new message body with the successfully extracted varibale keys.
         /// </summary>
-        /// <param name="response">The body of the <see cref="Message"/> to be parsed for variables to be extracted.</param>
+        /// <param name="response">The body of the <see cref="TwitchMessage"/> to be parsed for variables to be extracted.</param>
         /// <param name="variable_array">An array off all the extracted and serialized <see cref="Variable"/>.</param>
         /// <returns></returns>
-        public string ExtractVariables(string response, Message message, out Variable[] variable_array)
+        public string ExtractVariables(string response, TwitchMessage message, out Variable[] variable_array)
         {
-            string extracted_variable = string.Empty;
+            string extracted_variable = response;
 
             Variable variable;
 

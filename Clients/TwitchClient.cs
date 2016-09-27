@@ -16,12 +16,15 @@ namespace TwitchBot.Clients
     class TwitchClient : ITwitchClient
     {
         readonly string twitch_api_url = "https://api.twitch.tv/kraken",
-                        twitch_accept_header = "application/vnd.twitchtv.v3+json";
+                        twitch_accept_header = "application/vnd.twitchtv.v3+json",
+                        client_id;
 
         public readonly RestClient client;
 
-        public TwitchClient()
+        public TwitchClient(string _client_id)
         {
+            client_id = _client_id;
+
             client = new RestClient(twitch_api_url);
             client.AddHandler("application/json", new CustomJsonDeserializer());
             client.AddDefaultHeader("Accept", twitch_accept_header);            
@@ -103,7 +106,6 @@ namespace TwitchBot.Clients
             }
             while (follower_page._cursor.CheckString());
 
-            //only return a list of distinct followers in case some ass hat decides to unfollow and follow during this time
             return followers.Distinct();
         }
 
@@ -165,11 +167,11 @@ namespace TwitchBot.Clients
                 foreach (Follower follower in requested_page.follows)
                 {
                     //check to see if the follower date is earlier than the last follower date
-                    if(DateTime.Compare(follower.user.updated_at, newest_follower_updated_at) <= 0)
+                    if(DateTime.Compare(follower.created_at, newest_follower_updated_at) <= 0)
                     {
                         searching = false;
 
-                        newest_follower_updated_at = follower.user.updated_at;
+                        newest_follower_updated_at = follower.created_at;
 
                         //DebugBot.PrintLine(nameof(follower), follower.user.display_name);
                         //DebugBot.PrintLine(nameof(follower.user.updated_at), follower.user.updated_at.ToLocalTime().ToString());
@@ -197,7 +199,7 @@ namespace TwitchBot.Clients
             //make sure to set the "newest_follower_updated_at" to the first person that is added since it is requested in descending order
             if(new_followers_list_follower.Count > 0)
             {
-                newest_follower_updated_at = new_followers_list_follower[0].user.updated_at;
+                newest_follower_updated_at = new_followers_list_follower[0].created_at;
             }            
 
             return new_followers_list_string;
@@ -212,6 +214,7 @@ namespace TwitchBot.Clients
         public RestRequest Request(string url, Method method)
         {
             RestRequest request = new RestRequest(url, method);
+            request.AddHeader("Client-ID", client_id);
             request.AddQueryParameter("noCache", DateTime.Now.Ticks.ToString());
 
             return request;

@@ -290,60 +290,40 @@ namespace TwitchBot.Extensions
         }
 
         /// <summary>
-        /// Formats a string into a format that can then be serialized/deserialized. 
-        /// </summary>
-        /// <typeparam name="type">The format to preserialize the string as.</typeparam>
-        /// <param name="str">String to be preserialized.</param>
-        /// <returns></returns>
-        public static string PreserializeAs<type>(this string str)
-        {
-            string preserialized_string = string.Empty;
-
-            List<int> test = new List<int>();
-
-            if (typeof(type).IsValueType || typeof(type) == typeof(string))
-            {               
-                preserialized_string = "{" + _Preserialize(str) + "}";
-            }
-            else if (typeof(type).IsArray || typeof(type).IsGenericType)
-            {
-                preserialized_string = "[" + _Preserialize_Array<type>(str) + "]";
-            }
-            else
-            {
-                preserialized_string = "{\"" + typeof(type).Name + "\": {" + _Preserialize(str) + "}}";
-            }
-
-            return preserialized_string;
-        }
-
-        /// <summary>
         /// Formats a string into a format that can then be serialized/deserialized with a specific label at the begining of the object. 
         /// </summary>
         /// <typeparam name="type">The format to preserialize the string as.</typeparam>
         /// <param name="str">String to be preserialized.</param>
         /// <param name="label">The label to be placed before the preserialized string.</param>
         /// <returns></returns>
-        public static string PreserializeAs<type>(this string str, string label)
+        public static string PreserializeAs<type>(this string str, string label = "")
         {
-            string preserialized_string = string.Empty;
-
-            List<int> test = new List<int>();
+            string preserialized = string.Empty;
 
             if (typeof(type).IsValueType || typeof(type) == typeof(string))
             {
-                preserialized_string = "{\"" + label + "\": {" + _Preserialize(str) + "}}";
+                preserialized = "{" + Preserialize(str) + "}";
             }
             else if (typeof(type).IsArray || typeof(type).IsGenericType)
             {
-                preserialized_string = "{\"" + label + "\": [" + _Preserialize_Array<type>(str) + "]}";
+                preserialized = "[" + Preserialize_Array<type>(str) + "]}";
             }
             else
             {
-                preserialized_string = "{\"" + label + "\": {" + _Preserialize(str) + "}}";
+                if (!label.CheckString())
+                {
+                    label = typeof(type).Name;
+                }                    
+
+                preserialized = "{" + Preserialize(str) + "}";
             }
 
-            return preserialized_string;
+            if (label.CheckString())
+            {
+                preserialized = "{\"" + label + "\":" + preserialized + "}";
+            }
+
+            return preserialized;
         }
 
         /// <summary>
@@ -351,37 +331,37 @@ namespace TwitchBot.Extensions
         /// </summary>
         /// <param name="str">String to be preserialized.</param>
         /// <returns></returns>
-        private static string _Preserialize(string str)
+        private static string Preserialize(string str)
         {
-            string[] array = str.StringToArray<string>(',');
+            string preserialized = string.Empty;
 
-            string to_serialize = string.Empty;
+            string[] array = str.StringToArray<string>('|');            
 
-            for (int index = 0; index < array.Length; index++)
+            for (int index = 0; index < array.Length; ++index)
             {
-                string temp = array[index].RemoveWhiteSpace();
+                string element = array[index].RemoveWhiteSpace(),               //remove all white space from the element
+                       key = element.TextBefore(":").RemoveWhiteSpace(),        //get the key before the :
+                       value = element.TextAfter(":").RemoveWhiteSpace();       //get the value after the :
 
-                int space_index = temp.IndexOf(' ');
-
-                if (space_index == -1 || !temp.CheckString())
+                //make sure both the key and the value are valid
+                if(!key.CheckString() || !value.CheckString())
                 {
                     continue;
                 }
 
-                string key = temp.Substring(0, space_index - 1).Wrap("\"", "\""),
-                       value = temp.Substring(space_index + 1).Wrap("\"", "\"");
+                key = key.Wrap("\"", "\"") + ":";
+                value = value.Wrap("\"", "\"");
 
-                key += ":";
+                preserialized += key + " " + value;
 
-                to_serialize += key + " " + value;
-
+                //there are more elements in the set, append ', '
                 if (index != array.Length - 1)
                 {
-                    to_serialize += ",";
+                    preserialized += ", ";
                 }
             }
 
-            return to_serialize;
+            return preserialized;
         }
 
         /// <summary>
@@ -390,7 +370,7 @@ namespace TwitchBot.Extensions
         /// <typeparam name="type">The format to preserialize the string as.</typeparam>
         /// <param name="str">String to be preserialized.</param>
         /// <returns></returns>
-        private static string _Preserialize_Array<type>(string str)
+        private static string Preserialize_Array<type>(string str)
         {
             string[] array = str.StringToArray<string>(',');
 
@@ -535,16 +515,12 @@ namespace TwitchBot.Extensions
             return converter.IsValid(obj);
         }
 
-        public static bool Contains<type>(this string str, type[] array, out string value_out)
+        public static bool Contains<type>(this string str, type[] array)
         {
-            value_out = string.Empty;
-
             foreach(type value in array)
             {
                 if (str.Contains(value.ToString()))
                 {
-                    value_out = value.ToString();
-
                     return true;
                 }
             }

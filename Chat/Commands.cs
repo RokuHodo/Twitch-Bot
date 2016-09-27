@@ -5,12 +5,15 @@ using System.Net;
 
 using Newtonsoft.Json;
 
+using TwitchBot.Clients;
 using TwitchBot.Debugger;
 using TwitchBot.Enums.Chat;
 using TwitchBot.Enums.Extensions;
 using TwitchBot.Extensions;
 using TwitchBot.Extensions.Files;
+using TwitchBot.Helpers;
 using TwitchBot.Models.Bot.Chat;
+using TwitchBot.Models.TwitchAPI;
 
 namespace TwitchBot.Chat
 {
@@ -109,7 +112,7 @@ namespace TwitchBot.Chat
         /// </summary>
         /// <param name="variables">Used for parsing the command for possible variables.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        public void Modify(Variables variables, Message message)
+        public void Modify(Variables variables, TwitchMessage message)
         {
             string temp = ParseAfterCommand(message),
                    key = temp.TextBefore(" ");
@@ -141,7 +144,7 @@ namespace TwitchBot.Chat
                 DebugBot.PrintLine(nameof(temp), temp);
                 DebugBot.PrintLine(nameof(key), key);
                 DebugBot.PrintLine(nameof(message.body), message.body);
-            }            
+            }           
         }
 
         /// <summary>
@@ -150,7 +153,7 @@ namespace TwitchBot.Chat
         /// <param name="command">Command to be added.</param>
         /// <param name="variables">Parses the response for any valid variables and loads them into the <see cref="Variables.variables_dictionary"/>.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        private void Add(Variables variables, Message message)
+        private void Add(Variables variables, TwitchMessage message)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Adding command...");
@@ -227,7 +230,7 @@ namespace TwitchBot.Chat
         /// <param name="command_model">Command to be edited.</param>
         /// <param name="variables">Parses the response for any valid variables and loads them into the <see cref="Variables.variables_dictionary"/>.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        private void Edit(Variables variables, Message message)
+        private void Edit(Variables variables, TwitchMessage message)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Editing command...");
@@ -254,7 +257,7 @@ namespace TwitchBot.Chat
                 return;
             }
 
-            string command_preserialized = ParseAfterCommand(message).PreserializeAs<string>();    
+            string command_preserialized = message.body.PreserializeAs<string>();    
 
             Command command = new Command
             {
@@ -318,7 +321,7 @@ namespace TwitchBot.Chat
         /// <param name="command">Command to be removed.</param>
         /// <param name="variables">Required to create a command model in order for the command to be removed properly.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        private void Remove(Variables variables, Message message)
+        private void Remove(Variables variables, TwitchMessage message)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Removing command...");
@@ -461,6 +464,11 @@ namespace TwitchBot.Chat
         /// <returns></returns>
         public bool Exists(string command)
         {
+            if (!command.CheckString())
+            {
+                return false;
+            }
+
             return commands_dictionary.ContainsKey(command);
         }
 
@@ -553,6 +561,37 @@ namespace TwitchBot.Chat
         #region Command wrappers               
 
         /// <summary>
+        /// Gives a shout out to a channel.
+        /// Returns empty if the channel doesn't exist.
+        /// </summary>
+        /// <param name="message"><see cref="TwitchMessage"/> containing the channel to shout out.</param>
+        /// <param name="client">The client to get the channel info.</param>
+        /// <returns></returns>
+        public string ShoutOut(TwitchMessage message, TwitchClientOAuth client)
+        {
+            string name = ParseAfterCommand(message),
+                   shoutout_message = string.Empty;
+
+            Channel channel = client.GetChannel(name.ToLower());
+
+            if (!channel.display_name.CheckString())
+            {
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.GET, nameof(channel), DebugError.NORMAL_NULL);
+
+                return shoutout_message;
+            }
+
+            shoutout_message = "Go check out " + channel.display_name + " over at https://www.twitch.tv/" + channel.name + " !";
+
+            if (channel.game.CheckString())
+            {
+                shoutout_message += " They were last pplaying " + channel.game + " on " + channel.updated_at.ToLocalTime().ToLongDateString() + ".";            
+            }
+
+            return shoutout_message;
+        }
+
+        /// <summary>
         /// Gets the name of the current song playing.
         /// Reads the name from the file path specified from the <code>!music</code> response.
         /// </summary>
@@ -632,14 +671,16 @@ namespace TwitchBot.Chat
         /// <param name="variables">Parses the response for any valid variables and loads them into the <see cref="Variables.variables_dictionary"/> dictionary.</param>
         /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="Notify"/>. Contains the message sender and room to send the chat message or whisper.</param>
         /// <returns></returns>
-        private Command MessageToCommand(Message message, Variables variables)
+        private Command MessageToCommand(TwitchMessage message, Variables variables)
         {
-            string command_string;
+            string command_string = message.body;
 
             Variable[] variable_array;
 
-            command_string = message.body;
+            //first, search and extract any variable before ther message is serealzied 
             command_string = variables.ExtractVariables(command_string, message, out variable_array);
+
+            //now format the message body in a way that can be serialized into JSON
             command_string = command_string.PreserializeAs<string>();     
 
             try
@@ -648,7 +689,7 @@ namespace TwitchBot.Chat
 
                 DebugBot.PrintLine(DebugMessageType.SUCCESS, DebugMethod.SERIALIZE, nameof(command));
                 DebugBot.PrintObject(command);
-
+                
                 foreach (Variable variable in variable_array)
                 {
                     DebugBot.BlankLine();
@@ -670,11 +711,11 @@ namespace TwitchBot.Chat
         }
 
         /// <summary>
-        /// Parses the body of a <see cref="Message"/> after the command and returns a <see cref="string"/>.
+        /// Parses the body of a <see cref="TwitchMessage"/> after the command and returns a <see cref="string"/>.
         /// </summary>
         /// <param name="message">Contains the body and command of the message that is parsed.</param>
         /// <returns></returns>
-        public string ParseAfterCommand(Message message)
+        public string ParseAfterCommand(TwitchMessage message)
         {
             string result = string.Empty;
 

@@ -1,4 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using System;
+
+using Newtonsoft.Json;
 
 namespace TwitchBot.Models.TwitchAPI
 {
@@ -32,10 +34,10 @@ namespace TwitchBot.Models.TwitchAPI
         public string name { get; set; }
 
         [JsonProperty("created_at")]
-        public string created_at { get; set; }
+        public DateTime created_at { get; set; }
 
         [JsonProperty("updated_at")]
-        public string updated_at { get; set; }
+        public DateTime updated_at { get; set; }
 
         [JsonProperty("logo")]
         public string logo { get; set; }

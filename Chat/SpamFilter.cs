@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 using TwitchBot.Debugger;
 using TwitchBot.Enums.Chat;
 using TwitchBot.Extensions;
-using TwitchBot.Models.Bot.Chat;
+using TwitchBot.Helpers;
 using TwitchBot.Models.Bot.Spam;
 using TwitchBot.Clients;
 using TwitchBot.Extensions.Files;
@@ -168,7 +168,7 @@ namespace TwitchBot.Chat
 
         #region Spam checks
 
-        public bool CheckMessage(Message message, TwitchClientOAuth bot, TwitchClientOAuth broadcaster)
+        public bool CheckMessage(TwitchMessage message, TwitchClientOAuth bot, TwitchClientOAuth broadcaster)
         {
             if(spam_settings_master == null || spam_settings_master == default(SpamSettings))
             {
@@ -223,7 +223,7 @@ namespace TwitchBot.Chat
             return true;
         }        
 
-        private bool CheckASCII(Message message, ASCII settings)
+        private bool CheckASCII(TwitchMessage message, ASCII settings)
         {
             if (CheckPermission(settings.permission, message.sender.user_type) || !settings.enabled)
             {
@@ -257,7 +257,7 @@ namespace TwitchBot.Chat
             return characters_ascii.CheckPercent(ascii_bytes.Length, settings.percent);
         }
 
-        private bool CheckBlacklist(Message message, Blacklist settings, List<string> blacklist)
+        private bool CheckBlacklist(TwitchMessage message, Blacklist settings, List<string> blacklist)
         {
             if(blacklisted_words_list.Count == 0)
             {
@@ -300,7 +300,7 @@ namespace TwitchBot.Chat
             return true;
         }
 
-        private bool CheckCaps(Message message, Caps settings)
+        private bool CheckCaps(TwitchMessage message, Caps settings)
         {
             if (CheckPermission(settings.permission, message.sender.user_type) || !settings.enabled)
             {
@@ -330,7 +330,7 @@ namespace TwitchBot.Chat
             return characters_uppercase.CheckPercent(body_no_whitespace.Length, settings.percent);
         }
 
-        private bool CheckLinks(Message message, Links settings)
+        private bool CheckLinks(TwitchMessage message, Links settings)
         {
             if (CheckPermission(settings.permission, message.sender.user_type) || !settings.enabled)
             {
@@ -347,7 +347,7 @@ namespace TwitchBot.Chat
             return true;
         }
 
-        private bool CheckWall(Message message, Wall settings)
+        private bool CheckWall(TwitchMessage message, Wall settings)
         {
             if (CheckPermission(settings.permission, message.sender.user_type) || !settings.enabled)
             {
@@ -406,7 +406,7 @@ namespace TwitchBot.Chat
 
         #region Change and apply spam settings
 
-        public void Modify_BlacklistedWords(Commands commands, Message message)
+        public void Modify_BlacklistedWords(Commands commands, TwitchMessage message)
         {
             string temp = commands.ParseAfterCommand(message),
                    key = temp.TextBefore(" ");
@@ -440,7 +440,7 @@ namespace TwitchBot.Chat
             }
         }
 
-        private void Add_BlacklistedWord(Message message)
+        private void Add_BlacklistedWord(TwitchMessage message)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Adding blacklisted words...");
@@ -503,7 +503,7 @@ namespace TwitchBot.Chat
             }
         }
 
-        private void Edit_BlacklistedWord(Message message)
+        private void Edit_BlacklistedWord(TwitchMessage message)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Editting blacklisted word...");
@@ -570,7 +570,7 @@ namespace TwitchBot.Chat
             }
         }
 
-        private void Remove_BlacklistedWord(Message message)
+        private void Remove_BlacklistedWord(TwitchMessage message)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Removing blacklisted words...");
@@ -630,7 +630,7 @@ namespace TwitchBot.Chat
             }
         }             
 
-        public void ChangeSetting(Message message, Commands commands)
+        public void ChangeSetting(TwitchMessage message, Commands commands)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Updating spam setting...");
