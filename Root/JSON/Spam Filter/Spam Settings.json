@@ -10,7 +10,7 @@
     680
   ],
   "Caps": {
-    "enabled": false,
+    "enabled": true,
     "length": 20,
     "percent": 75,
     "permission": 1
