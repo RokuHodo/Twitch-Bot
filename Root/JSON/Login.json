@@ -1,5 +1,0 @@
-{
-  "client_id": "<client id>",
-  "bot_token": "<token>",         //don't include "OAuth"
-  "broadcaster_token": "<token>"  //don't include "OAuth"
-}  

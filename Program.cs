@@ -2,20 +2,22 @@
 using System.IO;
 using System.Threading;
 
+using Newtonsoft.Json;
+
 using TwitchBot.Clients;
 using TwitchBot.Debugger;
 using TwitchBot.Extensions;
 using TwitchBot.Models.Bot;
 
-using Newtonsoft.Json;
+/* --------------------------------------------------------
 
-/*
     TODO: 
-          - Make quotes non-zero based?
-          - Have a better !commands command
-          - Put in host notifications
+          - Separate utility commands (!command, !variable, !quote, !add, !edit, and !remove) from user commands using reflection
+          - Make the utility commands readonly, i.e - cannot be removed or edited, even by the broadcaster
+          - Make !add, !edit, and !remove actual commands instead of being hard coded (update ExtractCommand as needed)
+          - Remove all unnecessary commenting and update summaries
 
-*/
+-------------------------------------------------------- */
 
 namespace TwitchBot
 {
@@ -53,7 +55,6 @@ namespace TwitchBot
 
             Bot bot = new Bot(bot_client, broadcaster_client);
             bot.JoinChannel(broadcaster_client.GetAuthenticatedUser().name);
-            //bot.JoinChannel("lobosjr");
 
             while (true)
             {
@@ -82,31 +83,12 @@ namespace TwitchBot
                 return false;
             }
 
-            /*
-            if (!login.bot_token.StartsWith("oauth:"))
-            {
-                error = "The token for the bot must include \"oauth:\"";
-
-                return false;
-            }
-            */
-
             if (!login.broadcaster_token.CheckString())
             {
                 error = "The oauth token for the broadcaster could not be found";
 
                 return false;
             }
-
-
-            /*
-            if (!login.broadcaster_token.StartsWith("oauth:"))
-            {
-                error = "The token for the broadcaster must include \"oauth:\"";
-
-                return false;
-            }
-            */
 
             return true;
         }

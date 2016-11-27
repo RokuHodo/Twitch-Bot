@@ -1,0 +1,227 @@
+[
+  {
+    "key": "!shoutout",
+    "response": "!shoutout",
+    "permanent": true,
+    "permission": 1,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!variable",
+    "response": "!variable",
+    "permanent": true,
+    "permission": 1,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!command",
+    "response": "!command",
+    "permanent": true,
+    "permission": 1,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "2016-09-30T19:58:01.1716985-04:00"
+  },
+  {
+    "key": "!quote",
+    "response": "!quote",
+    "permanent": true,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "2016-09-30T19:57:18.2596395-04:00"
+  },
+  {
+    "key": "!quotes",
+    "response": "!quotes",
+    "permanent": true,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "2016-08-13T17:03:34.5441787-04:00"
+  },
+  {
+    "key": "!blacklist",
+    "response": "!blacklist",
+    "permanent": true,
+    "permission": 1,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!settitle",
+    "response": "!settitle",
+    "permanent": true,
+    "permission": 1,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!setgame",
+    "response": "!setgame",
+    "permanent": true,
+    "permission": 1,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "2016-09-24T19:50:20.309337-04:00"
+  },
+  {
+    "key": "!setdelay",
+    "response": "!setdelay",
+    "permanent": true,
+    "permission": 1,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "2016-08-13T17:04:55.4858562-04:00"
+  },
+  {
+    "key": "!howlong",
+    "response": "!howlong",
+    "permanent": true,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 5000,
+    "last_used": "2016-08-13T17:03:49.4863006-04:00"
+  },
+  {
+    "key": "!source",
+    "response": "Bot source code: https://github.com/RokuHodo/Twitch-Bot.git",
+    "permanent": true,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "2016-08-13T17:03:52.0361366-04:00"
+  },
+  {
+    "key": "!uptime",
+    "response": "!uptime",
+    "permanent": true,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "2016-08-13T17:03:55.8534418-04:00"
+  },
+  {
+    "key": "!kadgar",
+    "response": "http://kadgar.net/live/dumj01/sixdegreesofgaming",
+    "permanent": true,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "2016-08-13T17:03:59.5093843-04:00"
+  },
+  {
+    "key": "!steam",
+    "response": "Steam: http://steamcommunity.com/id/RokuHodo",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "2016-08-13T17:04:02.5936286-04:00"
+  },
+  {
+    "key": "!pc",
+    "response": "PC: http://pcpartpicker.com/list/TZ7zf8",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "2016-08-13T17:04:04.1999543-04:00"
+  },
+  {
+    "key": "!youtube",
+    "response": "YouTube: https://www.youtube.com/user/SixDegreesOfGaming",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "2016-08-13T17:04:06.5079404-04:00"
+  },
+  {
+    "key": "!twitter",
+    "response": "Twitter: https://twitter.com/RokuHodo",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "2016-08-13T17:04:09.1178227-04:00"
+  },
+  {
+    "key": "!music",
+    "response": "C:/Users/PJAnd/Documents/Twitch/Now Playing.txt",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "2016-09-24T19:58:00.0057026-04:00"
+  },
+  {
+    "key": "!discord",
+    "response": "Discord: https://discord.gg/0tErd6oiv6E54KV3",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 10000,
+    "last_used": "2016-08-13T17:04:16.7670026-04:00"
+  },
+  {
+    "key": "!setfilter",
+    "response": "setfilter",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!1080",
+    "response": "http://puu.sh/q4aea/b5e04401ae.jpg || http://puu.sh/q49Zt/128289f71f.jpg",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "2016-08-13T17:04:18.9776333-04:00"
+  },
+  {
+    "key": "!commands",
+    "response": "!commands",
+    "permanent": true,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!ribbons",
+    "response": "Ribbons: [ribbons]",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "0001-01-01T00:00:00"
+  },
+  {
+    "key": "!wiki",
+    "response": "To learn more about the bot and how to use it, check out the wiki! https://github.com/RokuHodo/Twitch-Bot/wiki",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "2016-09-30T19:57:17.75714-04:00"
+  },
+  {
+    "key": "!level",
+    "response": "Level: [level]",
+    "permanent": false,
+    "permission": 0,
+    "type": 0,
+    "cooldown": 0,
+    "last_used": "0001-01-01T00:00:00"
+  }
+]
