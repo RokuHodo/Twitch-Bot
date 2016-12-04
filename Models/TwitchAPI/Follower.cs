@@ -2,7 +2,7 @@
 
 using Newtonsoft.Json;
 
-using TwitchBot.Helpers;
+using TwitchBot.Models.Helpers;
 
 namespace TwitchBot.Models.TwitchAPI
 {

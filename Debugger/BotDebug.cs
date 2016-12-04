@@ -25,7 +25,6 @@ namespace TwitchBot.Debugger
 
         /// <summary>
         /// Prints a success debug message to the command line following a template.
-        /// 
         /// [ Success ] Successfully (method) the (obj)
         /// </summary>
         public static void Success(DebugMethod method, string obj)
@@ -39,6 +38,9 @@ namespace TwitchBot.Debugger
             PrintLine(message, color);
         }
 
+        /// <summary>
+        /// Gets the proper conjugation of the <see cref="DebugMethod"/> in the present tense.
+        /// </summary>
         public static string GetSuccessMethodString(DebugMethod method)
         {
             string str = method.ToString();
@@ -85,7 +87,6 @@ namespace TwitchBot.Debugger
 
         /// <summary>
         /// Prints a custom success debug message to the command line.
-        /// 
         /// [ Success ] (message)
         /// </summary>
         public static void Success(string message)
@@ -104,7 +105,6 @@ namespace TwitchBot.Debugger
 
         /// <summary>
         /// Prints a custom warning debug message to the command line.
-        /// 
         /// [ Warning ] (message)
         /// </summary>
         public static void Warning(string message)
@@ -123,7 +123,6 @@ namespace TwitchBot.Debugger
 
         /// <summary>
         /// Prints a custom notify debug message to the command line.
-        /// 
         /// [ Notice ] (message)
         /// </summary>
         public static void Notify(string message, string notice = "Notice", ConsoleColor color = ConsoleColor.Cyan)
@@ -143,7 +142,6 @@ namespace TwitchBot.Debugger
 
         /// <summary>
         /// Prints a error debug message to the command line following a template.
-        /// 
         /// [ Error ] Failed to (method) the (obj) : (error)
         /// </summary>
         public static void Error(DebugMethod method, string obj, string error)
@@ -164,7 +162,6 @@ namespace TwitchBot.Debugger
 
         /// <summary>
         /// Prints a custom error debug message to the command line.
-        /// 
         /// [ Error ] Failed to (method) the (obj) : (error)
         /// </summary>
         public static void Error(string message)
@@ -180,11 +177,17 @@ namespace TwitchBot.Debugger
                 
         #region Printing to the command line
 
+        /// <summary>
+        /// Prints a line of text to the command line with an optional sepecified color. No carriage return.
+        /// </summary>
         public static void Print(string text, ConsoleColor color = ConsoleColor.Gray)
         {
             PrintFinal(text, color);
         }
 
+        /// <summary>
+        /// Prints a line of text to the command line preceeded with a label and with an optional sepecified color. No carriage return.
+        /// </summary>
         public static void Print(string label, string text, ConsoleColor color = ConsoleColor.Gray)
         {
             string message = "{0,-20} {1,-20}";
@@ -194,11 +197,17 @@ namespace TwitchBot.Debugger
             PrintFinal(message, color);
         }
 
+        /// <summary>
+        /// Prints a line of text to the command line with an optional sepecified color. Returns to the start oif a new line.
+        /// </summary>
         public static void PrintLine(string text, ConsoleColor color = ConsoleColor.Gray)
         {
             PrintFinal(text, color, true);
-        }        
+        }
 
+        /// <summary>
+        /// Prints a line of text to the command line preceeded with a label and with an optional sepecified color. Returns to the start oif a new line.
+        /// </summary>
         public static void PrintLine(string label, string text, ConsoleColor color = ConsoleColor.Gray)
         {
             string message = "{0,-20} {1,-20}";
@@ -208,6 +217,9 @@ namespace TwitchBot.Debugger
             PrintFinal(message, color, true);
         }
 
+        /// <summary>
+        /// Prints a line of text to the command line with a specified color and if it should return to a new line after printing.
+        /// </summary>
         private static void PrintFinal(string text, ConsoleColor color, bool new_line = false)
         {
             Console.ForegroundColor = color;
@@ -224,6 +236,9 @@ namespace TwitchBot.Debugger
             Console.ResetColor();
         }
 
+        /// <summary>
+        /// Prints a blank line to the command line.
+        /// </summary>
         public static void BlankLine()
         {
             Console.WriteLine();
@@ -233,11 +248,17 @@ namespace TwitchBot.Debugger
 
         #region Object dump
 
+        /// <summary>
+        /// Prints all properties and fields of an object and all sub objects.
+        /// </summary>        
         public static void PrintObject(object obj)
         {
             PrintObject(null, obj);
         }
 
+        /// <summary>
+        /// Prints all properties and fields of an object and all sub objects with a specified prefix.
+        /// </summary>
         private static void PrintObject(string prefix, object obj)
         {
             if (obj == null || obj is ValueType || obj is string)
@@ -287,6 +308,9 @@ namespace TwitchBot.Debugger
             }
         }
 
+        /// <summary>
+        /// Converts the object into a printable string.
+        /// </summary>        
         private static string GetPrintValue(object obj)
         {
             if (obj == null)

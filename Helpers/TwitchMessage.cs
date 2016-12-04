@@ -1,18 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 
-using TwitchBot.Chat;
 using TwitchBot.Clients;
 using TwitchBot.Debugger;
+using TwitchBot.Models.Bot.Chat;
+using TwitchBot.Chat;
 using TwitchBot.Enums.Chat;
-using TwitchBot.Enums.Debugger;
 using TwitchBot.Enums.Extensions;
 using TwitchBot.Extensions;
-using TwitchBot.Models.Bot.Chat;
 
-namespace TwitchBot.Parser
+namespace TwitchBot.Helpers
 {
-    class MessageTwitch
+    class TwitchMessage
     {
         public bool is_notification { get; set; }
 
@@ -27,12 +26,12 @@ namespace TwitchBot.Parser
 
         public Dictionary<string, string> tags { get; set; }
         
-        public MessageTwitch()
+        public TwitchMessage()
         {
 
         }
 
-        public MessageTwitch(MessageIRC message_irc, Commands commands, string broadcaster_name)
+        public TwitchMessage(IRCMessage message_irc, Commands commands, string broadcaster_name)
         {
             string name;
 
@@ -82,7 +81,6 @@ namespace TwitchBot.Parser
         {
             string name = string.Empty;
 
-            //the user did not set a display name on twitch, pull the name from the irc prefix
             if (!tags.ContainsKey("display-name") || !tags["display-name"].CheckString())
             {
                 return prefix.TextBetween(':', '!');
@@ -94,7 +92,7 @@ namespace TwitchBot.Parser
             }
             catch(Exception exception)
             {
-                DebugBot.Error(DebugMethod.GET, nameof(name), DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.GET, nameof(name), DebugError.NORMAL_EXCEPTION);
                 DebugBot.PrintLine(nameof(exception), exception.Message);
             }            
 
@@ -121,14 +119,14 @@ namespace TwitchBot.Parser
             }
             catch(Exception exception)
             {
-                DebugBot.Error(DebugMethod.GET, nameof(user_type), DebugError.NORMAL_EXCEPTION);
+                DebugBot.PrintLine(DebugMessageType.ERROR, DebugMethod.GET, nameof(user_type), DebugError.NORMAL_EXCEPTION);
                 DebugBot.PrintLine(nameof(exception), exception.Message);
             }            
 
             return user_type;
         }
 
-        public MessageTwitch CheckForNotification(MessageTwitch message, TwitchClientOAuth bot)
+        public TwitchMessage CheckSubscriberMessage(TwitchMessage message, TwitchClientOAuth bot)
         {
             if(message.command_irc == "USERNOTICE")
             {

@@ -11,7 +11,7 @@
                              NORMAL_PERMANENT = "is permanent",
                              NORMAL_CONVERT = "could not convert object",
                              NORMAL_OUT_OF_BOUNDS = "index out of bounds",
-                             NORMAL_SERIALIZE = "failed to serialize";
+                             NORMAL_DESERIALIZE = "failed to deserialize";
 
         public static string SYNTAX_NULL = "bad syntax, cannot be null",
                              SYNTAX_UNKNOWN = "bad syntax, unknown error",

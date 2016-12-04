@@ -9,8 +9,8 @@ using TwitchBot.Enums.Chat;
 using TwitchBot.Enums.Debugger;
 using TwitchBot.Extensions;
 using TwitchBot.Interfaces;
+using TwitchBot.Messages;
 using TwitchBot.Models.TwitchAPI;
-using TwitchBot.Parser;
 
 namespace TwitchBot.Clients
 {
@@ -51,9 +51,6 @@ namespace TwitchBot.Clients
         /// Sets the title of a channel.
         /// Requires the "channel_editor" scope.
         /// </summary>
-        /// <param name="channel">Channel name.</param>
-        /// <param name="status">Title to set the stream to.</param>
-        /// <returns></returns>
         public Channel SetTitle(string channel, string status)
         {
             RestRequest request = Request("channels/{channel}", Method.PUT);
@@ -71,9 +68,6 @@ namespace TwitchBot.Clients
         /// Sets the game of a channel.
         /// Requires the "channel_editor" scope.
         /// </summary>
-        /// <param name="channel">Channel name.</param>
-        /// <param name="game">Game to set the stream to.</param>
-        /// <returns></returns>
         public Channel SetGame(string channel, string game)
         {
             RestRequest request = Request("channels/{channel}", Method.PUT);
@@ -90,11 +84,8 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Sets the stream delay of a channel.
         /// Requires the "channel_editor" scope.
-        /// Note: The channel needs to be partnered to set a custom dtream delay.
+        /// The channel needs to be partnered to set a custom dtream delay.
         /// </summary>
-        /// <param name="channel">Channel name.<./param>
-        /// <param name="delay">Stream delay of the stream.</param>
-        /// <returns></returns>
         public Channel SetDelay(string channel, string delay)
         {
             RestRequest request = Request("channels/{channel}", Method.PUT);
@@ -113,19 +104,14 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Purges a user for 1 second.
         /// </summary>
-        /// <param name="channel">User to purge.</param>
-        /// <param name="reason">Optional reason for the purge.</param>
         public void Purge(string channel, string reason = "")
         {
             connection.writer.WriteLine("PRIVMSG #{0} :{1}", name, ".timeout " + channel.ToLower() + " 1" + " " + reason);
         }
 
         /// <summary>
-        /// Times out a user for a specified amount of time.
+        /// Times out a user for a specified amount of time with an optional reason.
         /// </summary>
-        /// <param name="channel">User to timeout.</param>
-        /// <param name="seconds">How long to time the user out for.</param>
-        /// <param name="reason">Optional reason for the timeout.</param>
         public void Timeout(string channel, int seconds, string reason = "")
         {
             connection.writer.WriteLine("PRIVMSG #{0} :{1}", name, ".timeout " + channel.ToLower() + " " + seconds.ToString() + " " + reason);
@@ -134,8 +120,6 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Bans a user.
         /// </summary>
-        /// <param name="channel">User to be banned.</param>
-        /// <param name="reason">Optional reason for the ban.</param>
         public void Ban(string channel, string reason = "")
         {
             connection.writer.WriteLine("PRIVMSG #{0} :{1}", name, "/ban " + channel.ToLower() + " " + reason);
@@ -144,7 +128,6 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Unbans a user.
         /// </summary>
-        /// <param name="channel">User to unban.</param>
         public void Unban(string channel)
         {
             connection.writer.WriteLine("PRIVMSG #{0} :{1}", name, "/unban " + channel.ToLower());
@@ -153,7 +136,6 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Mods a user.
         /// </summary>
-        /// <param name="channel">User to mod.</param>
         public void Mod(string channel)
         {
             connection.writer.WriteLine("PRIVMSG #{0} :{1}", name, "/mod " + channel.ToLower());
@@ -162,7 +144,6 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Unmods a user.
         /// </summary>
-        /// <param name="channel">User to unmod.</param>
         public void Unmod(string channel)
         {
             connection.writer.WriteLine("PRIVMSG #{0} :{1}", name, "/unmod " + channel.ToLower());
@@ -175,8 +156,6 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Sends a message to the current chat room.
         /// </summary>
-        /// <param name="room">Room to send the message to.</param>
-        /// <param name="message">Message to send.</param>
         public void SendMessage(string room, string message)
         {
             if (!room.CheckString() || !message.CheckString() || !connection.isConnected())
@@ -191,8 +170,6 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Sends a whisper to a specified user.
         /// </summary>
-        /// <param name="recipient">Who to send the whisper to.</param>
-        /// <param name="whisper">The message to send to the user.</param>
         public void SendWhisper(string recipient, string whisper)
         {
             if (!whisper.CheckString() || !connection.isConnected())
@@ -207,10 +184,7 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Wrapper to either send a chat message or a whisper.
         /// </summary>
-        /// <param name="message_type">The type of message to be sent.</param>
-        /// <param name="message">MEssage thaty contains the information in order to send the chat message or whisper</param>
-        /// <param name="message_or_whisper">The message to be sent as a whisper or a chat message.</param>
-        public void SendResponse(MessageType message_type, MessageTwitch message, string message_or_whisper)
+        public void SendResponse(MessageType message_type, TwitchMessage message, string message_or_whisper)
         {
             if(message_type == MessageType.Chat)
             {
@@ -230,7 +204,6 @@ namespace TwitchBot.Clients
         /// Gets the uptime of the OAuth User.
         /// Called from Twitch by using <code>!uptime</code>.
         /// </summary>
-        /// <returns></returns>
         public string GetUpTime()
         {
             if (!isLive(name))
@@ -302,13 +275,10 @@ namespace TwitchBot.Clients
 
         /// <summary>
         /// Updates the broadcaster's game, title, or stream delay.
-        /// Note: The broadcaster must be a partner to set a delay.
+        /// The broadcaster must be a partner to set a delay.
         /// Requires the "channel_editor" scope.
         /// </summary>
-        /// <param name="stream_setting">Stream setting to update.</param>
-        /// <param name="commands">Parses the body of a <see cref="MessageTwitch"/> after the command and returns a <see cref="string"/>.</param>
-        /// <param name="message">The message to be parsed for the new stream setting.</param>
-        public void UpdateStream(StreamSetting stream_setting, Commands commands, MessageTwitch message)
+        public void UpdateStream(StreamSetting stream_setting, Commands commands, TwitchMessage message)
         {
             string value = commands.ParseAfterCommand(message);
 
@@ -392,9 +362,6 @@ namespace TwitchBot.Clients
         /// Send the request to the api.
         /// Requires the authentication token of the broadcaster and the client id of the application from Twitch.
         /// </summary>
-        /// <param name="url">Twitch api url.</param>
-        /// <param name="method">Operation that is being performed.</param>
-        /// <returns></returns>
         public new RestRequest Request(string url, Method method)
         {
             RestRequest request = new RestRequest(url, method);

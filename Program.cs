@@ -15,7 +15,7 @@ using TwitchBot.Models.Bot;
           - Separate utility commands (!command, !variable, !quote, !add, !edit, and !remove) from user commands using reflection
           - Make the utility commands readonly, i.e - cannot be removed or edited, even by the broadcaster
           - Make !add, !edit, and !remove actual commands instead of being hard coded (update ExtractCommand as needed)
-          - Remove all unnecessary commenting and update summaries
+          - Remove all unnecessary commenting and update summaries (Left off at Variables.cs)
 
 -------------------------------------------------------- */
 
@@ -65,6 +65,9 @@ namespace TwitchBot
             }
         }
 
+        /// <summary>
+        /// Checks to make sure the login tokens and client it are valid.
+        /// </summary>
         private static bool CheckLogin_Credentials(Login login, out string error)
         {
             error = string.Empty;
@@ -93,6 +96,9 @@ namespace TwitchBot
             return true;
         }
 
+        /// <summary>
+        /// Checks to make sure the broadcater and the bot clients were logged in successfully.
+        /// </summary>
         private static bool CheckLogin_Clients(TwitchClientOAuth bot, TwitchClientOAuth broadcaster, out string error)
         {
             error = string.Empty;
@@ -114,6 +120,9 @@ namespace TwitchBot
             return true;
         }
 
+        /// <summary>
+        /// Exits the application.
+        /// </summary>
         private static void CloseBot()
         {
             DebugBot.PrintLine("Press any key to exit...");

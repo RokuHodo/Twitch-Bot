@@ -24,6 +24,9 @@ namespace TwitchBot.Helpers
             direction = _direction;
         }
 
+        /// <summary>
+        /// Sets how to recieve the <see cref="RestRequest"/> when getting paged lists.
+        /// </summary>
         public RestRequest AddPaging(RestRequest request)
         {
             request.AddParameter("limit", limit);

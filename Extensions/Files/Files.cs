@@ -10,10 +10,8 @@ namespace TwitchBot.Extensions.Files
     static class FileExtensions
     {
         /// <summary>
-        /// Overrides a file conttents with with new text to append
+        /// Overrides a file contents with with new text to append
         /// </summary>
-        /// <param name="str"></param>
-        /// <param name="path"></param>
         public static void OverrideFile(this string str, string path)
         {
             path.ClearFile();
@@ -23,7 +21,6 @@ namespace TwitchBot.Extensions.Files
         /// <summary>
         /// Clears a text file of its content
         /// </summary>
-        /// <param name="path"></param>
         public static void ClearFile(this string path)
         {
             File.Create(path).Close();
@@ -32,8 +29,6 @@ namespace TwitchBot.Extensions.Files
         /// <summary>
         /// Appends a string to a text file.
         /// </summary>
-        /// <param name="str">String to append.</param>
-        /// <param name="path">Path to the text file.</param>
         public static void AppendToFile(this String str, string path)
         {
             using (StreamWriter writer = File.AppendText(path))
@@ -45,11 +40,8 @@ namespace TwitchBot.Extensions.Files
         }
 
         /// <summary>
-        /// Removes a string from a text file.
+        /// Removes a line of text from a text file with an optional search preference.
         /// </summary>
-        /// <param name="str">String to remove.</param>
-        /// <param name="path">Path to the text file.</param>
-        /// <param name="filter">Detemrines how to look for the lines of text to be removed. Default is <see cref="FileSearch.Exact"/>.</param>
         public static void RemoveFromFile(this string str, string path, FileSearch filter = FileSearch.Exact)
         {
             string temp_file = Path.GetTempFileName();

@@ -68,16 +68,17 @@
   <ItemGroup>
     <Compile Include="Chat\Commands.cs" />
     <Compile Include="Enums\Debugger\DebugMethod.cs" />
-    <Compile Include="Parser\MessageParser.cs" />
+    <Compile Include="JSON\CustomJsonDeserializer.cs" />
+    <Compile Include="Messages\Parser\MessageParser.cs" />
     <Compile Include="Chat\SpamFilter.cs" />
     <Compile Include="Enums\Chat\SpamSetting.cs" />
     <Compile Include="Enums\Extensions\StringSearch.cs" />
     <Compile Include="Enums\Extensions\WhiteSpace.cs" />
     <Compile Include="Helpers\Paging.cs" />
-    <Compile Include="Helpers\RequestInformation.cs" />
+    <Compile Include="Models\Helpers\RequestInformation.cs" />
     <Compile Include="Helpers\Trie.cs" />
-    <Compile Include="Parser\MessageIRC.cs" />
-    <Compile Include="Parser\MessageTwitch.cs" />
+    <Compile Include="Messages\IRCMessage.cs" />
+    <Compile Include="Messages\TwitchMessage.cs" />
     <Compile Include="Models\Bot\Chat\Sender.cs" />
     <Compile Include="Models\Bot\Login.cs" />
     <Compile Include="Models\Bot\Spam\Blacklist.cs" />
@@ -93,7 +94,6 @@
     <Compile Include="Clients\TwitchClient.cs" />
     <Compile Include="Clients\TwitchClientOAuth.cs" />
     <Compile Include="Connection\TwitchConnection.cs" />
-    <Compile Include="JSON\CustomJsonDeserializer.cs" />
     <Compile Include="Debugger\BotDebug.cs" />
     <Compile Include="Enums\Chat\CommandType.cs" />
     <Compile Include="Enums\Chat\ConnectionType.cs" />

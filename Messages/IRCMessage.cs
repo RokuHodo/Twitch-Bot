@@ -6,9 +6,9 @@ using TwitchBot.Enums.Debugger;
 using TwitchBot.Enums.Extensions;
 using TwitchBot.Extensions;
 
-namespace TwitchBot.Parser
+namespace TwitchBot.Messages
 {
-    class MessageIRC
+    class IRCMessage
     {
         public Dictionary<string, string> tags { get; set; }
 
@@ -21,7 +21,7 @@ namespace TwitchBot.Parser
         public string[] middle;
         public string[] trailing;
 
-        public MessageIRC(string irc_message)
+        public IRCMessage(string irc_message)
         {
             string irc_message_no_tags = string.Empty;
 
@@ -34,27 +34,24 @@ namespace TwitchBot.Parser
         #region Parser functions
 
         /// <summary>
-        /// Searches the tags attached to the message and extracts any that exist and assigns them to the <see cref="Dictionary{TKey, TValue}"/>
+        /// Searches for tags attached to the irc message and extracts any that exist and extracts them as a dictionary.
         /// </summary>
-        /// <param name="possible_tags">A <see cref="Dictionary{TKey, TValue}"/> that contains all of the possoble tags that can be sent with the message.</param>
-        /// <param name="key">The <see cref="string"/> that determines what type of twitch message was sent.</param>
-        /// <param name="prefix">The part of the message that contains the sender name and the channel/room the message was sent in.</param>
-        /// <param name="irc_message">The <see cref="string"/> send from the IRC to be parsed for the tags.</param>
-        /// <returns></returns>
         private Dictionary<string, string> GetTags(string irc_message, out string irc_message_no_tags)
         {
             Dictionary<string, string> tags = new Dictionary<string, string>();
 
-            //irc message doesn't contain any tags
-            if (!ContainsTags(irc_message))
+            //irc message only conmtains tags when it is preceeded with "@"
+            if (!irc_message.StartsWith("@"))
             {
                 irc_message_no_tags = irc_message;
 
                 return tags;
             }
 
+            //tags exist between "@" an the first space
             string tags_extracted = irc_message.TextBetween('@', ' ');
 
+            //tags are delineated by ";"
             string[] tags_extracted_array = tags_extracted.StringToArray<string>(';'),
                      tags_array_temp;
 
@@ -64,6 +61,7 @@ namespace TwitchBot.Parser
 
                 try
                 {
+                    //there should never be a situation where this fails, but just in case
                     tags[tags_array_temp[0]] = tags_array_temp[1];
                 }
                 catch (Exception exception)
@@ -73,41 +71,40 @@ namespace TwitchBot.Parser
                 }
             }
 
+            //cut of the tags to make handling the message later easier
             irc_message_no_tags = irc_message.TextAfter(" ");
 
             return tags;
         }
 
         /// <summary>
-        /// Gets the prefix before the body of the message that coontains the channel/room the messge was sent in and the name of the sender.
+        /// Gets the prefix of the irc message. The irc message passed must have no tags attached.
         /// </summary>
-        /// <param name="irc_message">The <see cref="string"/> send from the IRC to be parsed into a <see cref="MessageTwitch"/>.</param>
-        /// <param name="key_temp">The temporary key to use as a starting point to search for the prefix.</param>
-        /// <returns></returns>
         public string GetPrefix(string irc_message)
         {
             return irc_message.TextBefore(" ");
         }
 
         /// <summary>
-        /// Gets the type of message sent through Twitch, i.e. PRIVMSG, WHISEPER, USERNOTICE, etc.
+        /// Gets the irc message command. The irc message passed must have no tags attached.
         /// </summary>
-        /// <param name="prefix">The prefix before the message sent through Twitch.</param>
-        /// <returns></returns>
         private string GetCommand(string irc_message)
         {
             return irc_message.TextBetween(' ', ' ');
         }
 
+        /// <summary>
+        /// Gets the parameters after the irc command and parses for the middle and trialing part of the message. The irc message passed must have no tags attached.
+        /// </summary>
         private string GetParameters(string irc_command, string irc_message, out string[] middle, out string[] trailing)
         {
-            string parameters = irc_message.TextAfter(irc_command).RemoveWhiteSpace(WhiteSpace.Left);
+            string parameters = irc_message.TextAfter(irc_command).RemovePadding(Padding.Left);
 
             //check to see if there is trailing
             if (parameters.IndexOf(":") != -1)
             {
-                middle = parameters.TextBefore(":").RemoveWhiteSpace(WhiteSpace.Both).StringToArray<string>(' ');
-                trailing = parameters.TextAfter(":").RemoveWhiteSpace(WhiteSpace.Both).StringToArray<string>(' ');
+                middle = parameters.TextBefore(":").RemovePadding(Padding.Both).StringToArray<string>(' ');
+                trailing = parameters.TextAfter(":").RemovePadding(Padding.Both).StringToArray<string>(' ');
             }
             else
             {
@@ -116,15 +113,6 @@ namespace TwitchBot.Parser
             }
 
             return parameters;
-        }
-
-        #endregion
-
-        #region Boolean logic
-
-        private bool ContainsTags(string irc_message)
-        {
-            return irc_message.StartsWith("@");
         }
 
         #endregion

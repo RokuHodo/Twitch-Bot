@@ -10,14 +10,10 @@ namespace TwitchBot.Extensions
     static class Universal
     {
         /// <summary>
-        /// Calculates the fractional percentage of two numbers and compares the percent to the minimum allowable percentage.
-        /// Checks to see if numerator / denominator < allowable_percent is true 
+        /// Calculates the percentage of two numbers and compares the percent to the minimum allowable percentage.
+        /// Checks to see if 100 * numerator / denominator exceeds max_allowable_percent
         /// </summary>
-        /// <param name="numerator">The value to check.</param>
-        /// <param name="denominator">The maximum value to compare against.</param>
-        /// <param name="max_allowable_percent">The upper threshhold that the calculated percent needs be less than to return true.</param>
-        /// <returns></returns>
-        public static bool CheckPercent(this int numerator, int denominator, int max_allowable_percent)
+        public static bool ExceedsMaxAllowablePercent(this int numerator, int denominator, int max_allowable_percent)
         {
             int percent = 100 * numerator / denominator;
 
@@ -27,9 +23,6 @@ namespace TwitchBot.Extensions
         /// <summary>
         /// Converts the uptime fragment from <see cref="TimeSpan"/> to a displayable <see cref="string"/>.
         /// </summary>
-        /// <param name="time">The value of the increment of time to get the string for.</param>
-        /// <param name="time_string">The singular version of the time tier. Example: "hour".</param>
-        /// <returns></returns>
         public static string GetTimeString(this int time, string time_string)
         {
             string to_return = time.ToString() + " " + time_string;
@@ -51,9 +44,6 @@ namespace TwitchBot.Extensions
         /// <summary>
         /// Checks to see if the value of an enum is within the defined range.
         /// </summary>
-        /// <typeparam name="type">The enum to compare the _enum value against.</typeparam>
-        /// <param name="_enum">The enum value to check.</param>
-        /// <returns></returns>
         public static bool CheckEnumRange<type>(this Enum _enum)
         {
             int enum_size = Enum.GetNames(typeof(type)).Length - 1,
@@ -72,8 +62,6 @@ namespace TwitchBot.Extensions
         /// <summary>
         /// Checks to see if a string is null, empty, or is only whitespace.
         /// </summary>
-        /// <param name="str">String to be checked.</param>
-        /// <returns></returns>
         public static bool CheckString(this string str)
         {
             if (string.IsNullOrEmpty(str) || string.IsNullOrWhiteSpace(str))
@@ -84,6 +72,10 @@ namespace TwitchBot.Extensions
             return true;
         }
 
+        /// <summary>
+        /// Gets the text after a certain part of a string.
+        /// Returns <see cref="string.Empty"/> if the string index cannot be found.
+        /// </summary>
         public static string TextAfter(this string str, string find)
         {
             string result = string.Empty;
@@ -100,6 +92,10 @@ namespace TwitchBot.Extensions
             return result;
         }
 
+        /// <summary>
+        /// Gets the text before a certain part of a string.
+        /// Returns <see cref="string.Empty"/> if the string index cannot be found.
+        /// </summary>
         public static string TextBefore(this string str, string find)
         {
             string result = string.Empty;
@@ -116,13 +112,9 @@ namespace TwitchBot.Extensions
 
         /// <summary>
         /// Gets the text between two characters at the first occurance.
+        /// The starting index can be specified.
+        /// The offset specifies how far into the sub string to return.
         /// </summary>
-        /// <param name="str">String to be parsed.</param>
-        /// <param name="start">Character to start parsing from.</param>
-        /// <param name="end">Character to stop parsing at.</param>
-        /// <param name="starting_index">(Optional parameter) How far into the string to look for the first parsing point.</param>
-        /// <param name="offset">(Optional parameter) How far from the first parsing point to start the substring.</param>
-        /// <returns></returns>
         public static string TextBetween(this string str, char start, char end, int starting_index = 0, int offset = 0)
         {
             string result = "";
@@ -136,24 +128,20 @@ namespace TwitchBot.Extensions
             {
                 result = str.Substring(parse_start + offset, parse_end - parse_start - offset);
             }
-            catch (Exception)
+            catch (Exception exception)
             {
                 DebugBot.Error("Failed to find text between \"" + start + "\" and \"" + end + "\"");
                 DebugBot.PrintLine(nameof(str), str);
+                DebugBot.PrintLine(nameof(exception), exception.Message);
             }
 
             return result;
         }
 
         /// <summary>
-        /// Gets the text between two characters in a string with a specified search parameter.
+        /// Gets the text between two characters with a specified search parameter.
+        /// A specific occurance can be returned if <see cref="StringSearch.Occurrence"/> is selected and the zero based occurance is specified.
         /// </summary>
-        /// <param name="str">String to be parsed.</param>
-        /// <param name="start">Character to start parsing from.</param>
-        /// <param name="end">Character to stop parsing at.</param>
-        /// <param name="search_type">The search filter to be applied when parsing for the text.</param>
-        /// <param name="occurrence">Specifies which occurance of the extracted text to be returned. Only applicable when <see cref="StringSearch.Occurrence"/> is selected.</param>
-        /// <returns></returns>
         public static string TextBetween(this string str, char start, char end, StringSearch search_type, int occurrence = 0)
         {
             string result = "";
@@ -185,7 +173,7 @@ namespace TwitchBot.Extensions
 
                             if (parse_start == -1 || parse_end == -1)
                             {
-                                DebugBot.PrintLine($"Failed to find the text between \"{start}\" and \"{end}\" at occurance = {occurrence}");
+                                DebugBot.Error("Failed to find the text between \"" + start + "\" and \"" + end + "\" at occurance = \"" + occurrence + "\"");
 
                                 parse_start = -1;
                                 parse_end = -1;
@@ -211,10 +199,10 @@ namespace TwitchBot.Extensions
                         break;
                 }
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                DebugBot.PrintLine($"Failed to find text between \"{start}\" and \"{end}\"");
-                DebugBot.PrintLine("Exception: " + ex.Message);
+                DebugBot.Error("Failed to find text between \"" + start + "\" and \"" + end + "\"");
+                DebugBot.PrintLine(nameof(exception), exception.Message);
             }
 
             return result;
@@ -223,10 +211,6 @@ namespace TwitchBot.Extensions
         /// <summary>
         /// Wraps a string with the specified strings.
         /// </summary>
-        /// <param name="str">String to wrap.</param>
-        /// <param name="start">Text to be placed before the string.</param>
-        /// <param name="end">Text to tbe placed after the string.</param>
-        /// <returns></returns>
         public static string Wrap(this string str, string start, string end)
         {
             if (!str.StartsWith(start))
@@ -243,18 +227,15 @@ namespace TwitchBot.Extensions
         }
 
         /// <summary>
-        /// Removes white space from a string either at the begining, left, or both sides.
+        /// Removes padding from the left, right, both sides of a string.
         /// </summary>
-        /// <param name="str">String to be parsed for white space.</param>
-        /// <param name="string_side">Specifies where the white space should be searched for. Default is <see cref="WhiteSpace.Both"/></param>
-        /// <returns></returns>
-        public static string RemoveWhiteSpace(this string str, WhiteSpace string_side = WhiteSpace.Both)
+        public static string RemovePadding(this string str, Padding string_side = Padding.Both)
         {
             string temp = string.Empty;
 
             switch (string_side)
             {
-                case WhiteSpace.Left:
+                case Padding.Left:
                     for (int index = 0; index < str.Length; index++)
                     {
                         if (str[index].ToString().CheckString())
@@ -265,7 +246,7 @@ namespace TwitchBot.Extensions
                         }
                     }
                     break;
-                case WhiteSpace.Right:
+                case Padding.Right:
                     for (int index = str.Length; index > 0; index--)
                     {
                         if (str[index - 1].ToString().CheckString())
@@ -276,38 +257,41 @@ namespace TwitchBot.Extensions
                         }
                     }
                     break;
-                case WhiteSpace.Both:
-                    temp = str.RemoveWhiteSpace(WhiteSpace.Left);
-                    temp = temp.RemoveWhiteSpace(WhiteSpace.Right);
+                case Padding.Both:
+                    temp = str.RemovePadding(Padding.Left);
+                    temp = temp.RemovePadding(Padding.Right);
                     break;
-                case WhiteSpace.All:
-                default:          
-                    temp = str.Replace(" ", "");
+                default:
+                    temp = str.RemovePadding(Padding.Both);
                     break;
             }
 
             return temp;
         }
 
+        public static string RemoveWhiteSpace(this string str)
+        {
+            return str.Replace(" ", "");
+        }
+
         /// <summary>
-        /// Formats a string into a format that can then be serialized/deserialized with a specific label at the begining of the object. 
+        /// Formats a string into a format that can then be deserialized with an optional label at the begining.
         /// </summary>
-        /// <typeparam name="type">The format to preserialize the string as.</typeparam>
-        /// <param name="str">String to be preserialized.</param>
-        /// <param name="label">The label to be placed before the preserialized string.</param>
-        /// <returns></returns>
         public static string PreserializeAs<type>(this string str, string label = "")
         {
             string preserialized = string.Empty;
 
+            //integrak types, floating point types, decimal, bool, user defined structs, and strings
             if (typeof(type).IsValueType || typeof(type) == typeof(string))
             {
-                preserialized = "{" + Preserialize(str) + "}";
+                preserialized = "{" + Preserialize(str) + "}";                      //formatted as {str}
             }
+            //arrays and generic collections
             else if (typeof(type).IsArray || typeof(type).IsGenericType)
             {
-                preserialized = "[" + Preserialize_Array<type>(str) + "]}";
+                preserialized = "[" + Preserialize_Array<type>(str) + "]";          //formatted as [str]
             }
+            //everything else is assumed to be an object/class with associated fields
             else
             {
                 if (!label.CheckString())
@@ -315,33 +299,31 @@ namespace TwitchBot.Extensions
                     label = typeof(type).Name;
                 }                    
 
-                preserialized = "{" + Preserialize(str) + "}";
+                preserialized = "{" + Preserialize(str) + "}";                     //formatted as {"label": str}
             }
 
             if (label.CheckString())
             {
-                preserialized = "{\"" + label + "\":" + preserialized + "}";
+                preserialized = "{\"" + label + "\":" + preserialized + "}";       //formatted as {"label": <preserialized>}
             }
 
-            return preserialized;
+            return preserialized; 
         }
 
         /// <summary>
-        /// Formats a string into a format that can be serialized/deserialized.
+        /// Formats a string into a format that can be deserialized.
         /// </summary>
-        /// <param name="str">String to be preserialized.</param>
-        /// <returns></returns>
         private static string Preserialize(string str)
         {
             string preserialized = string.Empty;
 
-            string[] array = str.StringToArray<string>('|');            
+            string[] array = str.StringToArray<string>('|');                    //input as key: value | key: value | key: value ...
 
             for (int index = 0; index < array.Length; ++index)
             {
-                string element = array[index].RemoveWhiteSpace(),               //remove all white space from the element
-                       key = element.TextBefore(":").RemoveWhiteSpace(),        //get the key before the :
-                       value = element.TextAfter(":").RemoveWhiteSpace();       //get the value after the :
+                string element = array[index].RemovePadding(),               //" key: value " -> "key: value"
+                       key = element.TextBefore(":").RemovePadding(),        //<key> = key
+                       value = element.TextAfter(":").RemovePadding();       //<value> = value
 
                 //make sure both the key and the value are valid
                 if(!key.CheckString() || !value.CheckString())
@@ -349,51 +331,49 @@ namespace TwitchBot.Extensions
                     continue;
                 }
 
-                key = key.Wrap("\"", "\"") + ":";
-                value = value.Wrap("\"", "\"");
+                key = key.Wrap("\"", "\"") + ":";                               //formatted as "<key>":
+                value = value.Wrap("\"", "\"");                                 //formatted as "<value>"
 
-                preserialized += key + " " + value;
+                preserialized += key + " " + value;                             //formatted as "<key>": "<value>"
 
                 //there are more elements in the set, append ', '
                 if (index != array.Length - 1)
                 {
-                    preserialized += ", ";
+                    preserialized += ", ";                                      //formatted as "<key>": "<value>", 
                 }
             }
 
-            return preserialized;
+            return preserialized;                                               //formatted as "<key>": "<value>", ..., "<key>": "<value>"
         }
 
         /// <summary>
-        /// Formats a string into a format that can be serialized/deserialized as an array/list.
+        /// Formats a string so it can be deserialized as an array/list.
         /// </summary>
-        /// <typeparam name="type">The format to preserialize the string as.</typeparam>
-        /// <param name="str">String to be preserialized.</param>
-        /// <returns></returns>
         private static string Preserialize_Array<type>(string str)
         {
-            string[] array = str.StringToArray<string>(',');
+            string[] array = str.StringToArray<string>(',');                                    //input as value, value, value, value, value, 
 
             string to_serialize = string.Empty;
 
             for (int index = 0; index < array.Length; index++)
             {
-                string temp = array[index].RemoveWhiteSpace();
+                string temp = array[index].RemovePadding();
 
+                //array/list of strings, wrap all values in quotes
                 if(typeof(type) == typeof(string[]) || typeof(type) == typeof(List<string>))
                 {
-                    temp = temp.Wrap("\"", "\"");
+                    temp = temp.Wrap("\"", "\"");                                               //formatted as "<value>"
                 }                
 
                 to_serialize += temp;
 
                 if (index != array.Length - 1)
                 {
-                    to_serialize += ", ";
+                    to_serialize += ", ";                                                       //formatted as <temp>,                                        
                 }
             }
 
-            return to_serialize;
+            return to_serialize;                                                                //formatted as <temp>, <temp>,  ..., <temp>
         }
 
         #endregion
@@ -403,8 +383,6 @@ namespace TwitchBot.Extensions
         /// <summary>
         /// Checks to see if an array is null.
         /// </summary>
-        /// <param name="array">Array to be checked.</param>
-        /// <returns></returns>
         public static bool CheckArray(this Array array)
         {
             return array != null; 
@@ -414,88 +392,55 @@ namespace TwitchBot.Extensions
         /// Converts a string into an array using user specified break points. 
         /// Whitespace lines are ignored and not added to the array.
         /// </summary>
-        /// <typeparam name="type">The type of array to be returned</typeparam>
-        /// <param name="str">The string to be parsed into an array</param>
-        /// <param name="parse_point">Where a new array element will be defined</param>
-        /// <param name="print_debug_text">Determine if the debug print should be printed</param>
-        /// <returns></returns>
-        public static type[] StringToArray<type>(this String str, char parse_point, bool print_debug_text = false)
+        public static type[] StringToArray<type>(this string str, char parse_point, bool print_debug_text = false)
         {
             if (!str.CheckString())
             {
-                return null;
+                return default(type[]);
             }
 
             string[] array = str.Split(parse_point);
 
             List<type> result = new List<type>();
 
-            bool first_failed_conversion = true;
-
-            for (int index = 0; index < array.Length; index++)
+            int index = 0;
+            foreach(string element in array)
             {
+                if(!element.CanCovertTo<type>())
+                {
+                    continue;
+                }
+
                 try
                 {
-                    result.Add((type)Convert.ChangeType(array[index], typeof(type)));
+                    result.Add((type)Convert.ChangeType(element, typeof(type)));
                 }
-                catch (FormatException)
+                catch (Exception exception)
                 {
                     if (print_debug_text)
                     {
-                        if (first_failed_conversion)
-                        {
-                            Console.WriteLine();
-
-                            first_failed_conversion = false;
-                        }
-
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("\t\tError: could not convert array element \"{0}\" from \"{1}\" to \"{2}\" at index \"{3}\"", array[index], typeof(string).Name, typeof(type).Name, index);
-                        Console.ForegroundColor = ConsoleColor.Gray;
-                    }
+                        DebugBot.Error("Could not convert array element \"" + element + "\" from \"" + typeof(string).Name + "\" to \"" + typeof(type).Name + "\" at index \"" + index + "\"");
+                        DebugBot.PrintLine(nameof(exception), exception.Message);
+                    }                    
                 }
+
+                ++index;
             }
 
-            type[] _result;
-
-            if (result.Count == 0)
+            if (print_debug_text)
             {
-                _result = null;
-            }
-            else
-            {
-                _result = result.ToArray();
-            }
-
-
-            if (_result.Length != array.Length && print_debug_text)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("\n\t\tError: some elements from the array could not be converted from \"{0}\" to \"{1}\"", typeof(string).Name, typeof(type).Name);
-
-                Console.Write("\n\t\tInput array:\t");
-                foreach (string element in array)
+                if (result.Count != array.Length)
                 {
-                    Console.Write("{0} ", element);
+                    DebugBot.Warning("Some elements from the array could not be converted from \"" + typeof(string).Name + "\" to \"" + typeof(type).Name + "\"");
                 }
-
-                Console.Write("\n\t\tReturned array:\t");
-                foreach (type element in _result)
+                else
                 {
-                    Console.Write("{0} ", element);
+                    DebugBot.Success("Conversion from \"" + typeof(string[]).Name + "\" to \"" + typeof(type[]).Name + "\" successful!\n");
                 }
-
-                Console.WriteLine();
-                Console.ForegroundColor = ConsoleColor.Gray;
             }
-            else if (_result.Length == array.Length && print_debug_text)
-            {
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("\n\t\tConversion from \"{0}\" to \"{1}\" successful!\n", typeof(string[]).Name, typeof(type[]).Name);
-                Console.ForegroundColor = ConsoleColor.Gray;
-            }
+            
 
-            return _result;
+            return result.Count == 0 ? default(type[]) : result.ToArray();
         }
 
         #endregion
@@ -505,9 +450,6 @@ namespace TwitchBot.Extensions
         /// <summary>
         /// Checks to see if an object can be convereted to certain type.
         /// </summary>
-        /// <param name="obj">Object to be checked.</param>
-        /// <param name="type">Type to be converted to.</param>
-        /// <returns></returns>
         public static bool CanCovertTo<type>(this object obj)
         {
             TypeConverter converter = TypeDescriptor.GetConverter(typeof(type));
@@ -515,6 +457,10 @@ namespace TwitchBot.Extensions
             return converter.IsValid(obj);
         }
 
+        /// <summary>
+        /// Checks to see if a string contains a value of an array.
+        /// </summary>
+        /// <typeparam name="type"></typeparam>
         public static bool Contains<type>(this string str, type[] array)
         {
             foreach(type value in array)

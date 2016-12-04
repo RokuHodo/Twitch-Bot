@@ -10,8 +10,8 @@ using TwitchBot.Enums.Debugger;
 using TwitchBot.Enums.Extensions;
 using TwitchBot.Extensions;
 using TwitchBot.Extensions.Files;
+using TwitchBot.Messages;
 using TwitchBot.Models.Bot.Chat;
-using TwitchBot.Parser;
 
 namespace TwitchBot.Chat
 {
@@ -49,14 +49,14 @@ namespace TwitchBot.Chat
         #region Load quotes
 
         /// <summary>
-        /// Loads a <see cref="Quote"/> into the <see cref="quotes"/> list to be called in real time.
+        /// Loads all the <see cref="Quote"/>s from the <see cref="FILE_PATH"/>.
         /// </summary>
-        /// <param name="command">The command to load.</param>
         private void Load(Quote quote)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Loading quote...");
 
+            //the quote is "empty", doon't load it
             if (quote == default(Quote))
             {
                 DebugBot.Error(DebugMethod.LOAD, nameof(quote), DebugError.NORMAL_EXCEPTION);
@@ -94,11 +94,9 @@ namespace TwitchBot.Chat
         #region Add quotes
 
         /// <summary>
-        /// Modify the variables by adding, editting, or removing.
-        /// </summary>
-        /// <param name="commands">Used for parsing the body.</param>
-        /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="TwitchNotify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        public void Modify(Commands commands, MessageTwitch message, TwitchClientOAuth broadcaster, TwitchClientOAuth bot)
+        /// Modify commands by adding, editting, or removing commands.
+        /// </summary>        
+        public void Modify(Commands commands, TwitchMessage message, TwitchClientOAuth broadcaster, TwitchClientOAuth bot)
         {
             string temp = commands.ParseAfterCommand(message),
                    key = temp.TextBefore(" ");
@@ -134,24 +132,21 @@ namespace TwitchBot.Chat
         }
 
         /// <summary>
-        /// Parses the <see cref="MessageTwitch.body"/> of a message and adds a <see cref="Quote"/> and adds it to the <see cref="quotes"/> list to be called in real time.
-        /// Called by the user from Twitch chat by using the "!addquote" command.
+        /// Adds a <see cref="Quote"/> at run time without needing to re-launch the bot.
         /// </summary>
-        /// <param name="commands">Used to parse the message for the quote.</param>        
-        /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="TwitchNotify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        /// <param name="broadcaster">Coontains the broadcaster name to be appended to the end of the quote</param>
-        public void Add(MessageTwitch message, TwitchClientOAuth broadcaster)
+        public void Add(TwitchMessage message, TwitchClientOAuth broadcaster)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Adding quote...");
 
             Quote quote = MessageToQuote(message, broadcaster);
 
+            //the chat message could not be serialized into a quote
             if (quote == default(Quote))
             {
-                TwitchNotify.Error(DebugMethod.ADD, message, nameof(quote), message.body, DebugError.NORMAL_SERIALIZE);
+                TwitchNotify.Error(DebugMethod.ADD, message, nameof(quote), message.body, DebugError.NORMAL_DESERIALIZE);
 
-                DebugBot.Error(DebugMethod.ADD, nameof(quote), DebugError.NORMAL_SERIALIZE);
+                DebugBot.Error(DebugMethod.ADD, nameof(quote), DebugError.NORMAL_DESERIALIZE);
                 DebugBot.PrintLine(nameof(message.body), message.body);
 
                 return;
@@ -188,7 +183,10 @@ namespace TwitchBot.Chat
             }
         }
 
-        public void Edit(MessageTwitch message, TwitchClientOAuth broadcaster)
+        /// <summary>
+        /// Edits a pre-existing <see cref="Quote"/> based on its index at run time without needing to re-launch the bot.
+        /// </summary>
+        public void Edit(TwitchMessage message, TwitchClientOAuth broadcaster)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Editing quote...");                        
@@ -205,7 +203,8 @@ namespace TwitchBot.Chat
 
             int index = GetIndex(message);
 
-            if(index == -1)
+            //index specified by the user was out of range
+            if (index < 0 || index > quotes.Count - 1)
             {
                 TwitchNotify.Error(DebugMethod.EDIT, message, "quote", index.ToString(), DebugError.NORMAL_OUT_OF_BOUNDS);
 
@@ -216,15 +215,17 @@ namespace TwitchBot.Chat
                 return;
             }
 
-            message.body = message.body.TextAfter(" ").RemoveWhiteSpace(WhiteSpace.Left);
+            //the quote body will be anything after the index
+            message.body = message.body.TextAfter(" ").RemovePadding(Padding.Left);
 
             Quote quote = MessageToQuote(message, broadcaster);
-            
-            if(quote == default(Quote))
-            {
-                TwitchNotify.Error(DebugMethod.EDIT, message, nameof(quote), message.body, DebugError.NORMAL_SERIALIZE);
 
-                DebugBot.Error(DebugMethod.EDIT, nameof(quote), DebugError.NORMAL_SERIALIZE);
+            //the chat message could not be deserialized into a quote
+            if (quote == default(Quote))
+            {
+                TwitchNotify.Error(DebugMethod.EDIT, message, nameof(quote), message.body, DebugError.NORMAL_DESERIALIZE);
+
+                DebugBot.Error(DebugMethod.EDIT, nameof(quote), DebugError.NORMAL_DESERIALIZE);
                 DebugBot.PrintLine(nameof(message.body), message.body);
 
                 return;
@@ -240,8 +241,7 @@ namespace TwitchBot.Chat
 
                 DebugBot.Success(DebugMethod.EDIT, nameof(quote));
                 DebugBot.PrintObject(quote);
-                DebugBot.PrintLine(nameof(index), index.ToString());
-                
+                DebugBot.PrintLine(nameof(index), index.ToString());                
             }
             catch (Exception exception)
             {
@@ -253,7 +253,10 @@ namespace TwitchBot.Chat
             }
         }
 
-        private void Remove(MessageTwitch message)
+        /// <summary>
+        /// Removes a pre-existing <see cref="Quote"/> based on its index at run time without needing to re-launch the bot.
+        /// </summary>
+        private void Remove(TwitchMessage message)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Removing quote...");
@@ -270,7 +273,8 @@ namespace TwitchBot.Chat
 
             int index = GetIndex(message);
 
-            if (index == -1)
+            //index specified by the user was out of range
+            if (index < 0 || index > quotes.Count - 1)
             {
                 TwitchNotify.Error(DebugMethod.REMOVE, message, "quote", index.ToString(), DebugError.NORMAL_OUT_OF_BOUNDS);
 
@@ -306,14 +310,14 @@ namespace TwitchBot.Chat
         #region Get quote information
 
         /// <summary>
-        /// Gets a random <see cref="Quote"/> from the <see cref="quotes"/> list.
+        /// Gets a <see cref="Quote"/> to be printed to twitch.
+        /// A user can either specify a quote by using !quote (index) or get a random quote by just using !quote.
         /// </summary>
-        /// <returns></returns>
-        public string GetQuote(MessageTwitch message)
+        public string GetQuote(TwitchMessage message)
         {
             int index;
 
-            string _quote = string.Empty;
+            string quote = string.Empty;
 
             if(quotes.Count < 1)
             {
@@ -322,34 +326,38 @@ namespace TwitchBot.Chat
                 DebugBot.Error(DebugMethod.GET, "quote", DebugError.NORMAL_NULL);
                 DebugBot.PrintLine(nameof(quotes.Count), quotes.Count.ToString());
 
-                return _quote;
+                return quote;
             }
 
+            //there is something after !quote and it's not a modifier, assume the user is trying to specify an index
             if (message.body.CheckString())
             {
                 index = GetIndex(message);
 
-                if (index == -1)
+                if (index < 0 || index > quotes.Count - 1)
                 {
-                    TwitchNotify.Error(DebugMethod.GET, message, "quote", index.ToString(), DebugError.NORMAL_OUT_OF_BOUNDS);
+                    TwitchNotify.Error(DebugMethod.GET, message, nameof(quote), index.ToString(), DebugError.NORMAL_OUT_OF_BOUNDS);
 
                     DebugBot.Error(DebugMethod.GET, "quote", DebugError.NORMAL_OUT_OF_BOUNDS);
                     DebugBot.PrintLine(nameof(index), index.ToString());
                     DebugBot.PrintLine(nameof(quotes.Count), quotes.Count.ToString());
 
-                    return _quote;
+                    return quote;
                 }
             }
             else
             {
                 index = new Random().Next(quotes.Count);
-            }            
+            }
 
-            _quote = quotes[index].quote + " - " + quotes[index].quotee + " " + quotes[index].date;
+            quote = quotes[index].quote + " - " + quotes[index].quotee + " " + quotes[index].date;
 
-            return _quote;
+            return quote;
         }
 
+        /// <summary>
+        /// Counts how many quotes are loaded and returns a message to be printed to twitch.
+        /// </summary>        
         public string GetTotalQuotes()
         {
             string result = string.Empty;
@@ -380,11 +388,8 @@ namespace TwitchBot.Chat
         #region Boolean checks
 
         /// <summary>
-        /// Checks to see if a quote already exists.
+        /// Checks to see if a <see cref="Quote"/> already exists.
         /// </summary>
-        /// /// <param name="debug_method">The type of operation being performed.</param>
-        /// <param name="quote">Quote to check.</param>
-        /// <returns></returns>
         private bool Exists(Quote quote)
         {
             if(quotes.Exists(x => x.quote == quote.quote))
@@ -399,7 +404,10 @@ namespace TwitchBot.Chat
 
         #region String parsing
 
-        private int GetIndex(MessageTwitch message)
+        /// <summary>
+        /// Gets the text after !quote and attempts to convert it into an integer.
+        /// </summary>
+        private int GetIndex(TwitchMessage message)
         {
             int index = -1;
 
@@ -418,23 +426,13 @@ namespace TwitchBot.Chat
 
             index = Convert.ToInt32(quote_index_string);
 
-            if (index > quotes.Count - 1 || index < 0)
-            {
-                index = -1;
-            }
-
             return index;
         }
 
         /// <summary>
-        /// 
+        /// Converts a <see cref="TwitchMessage"/> recieved from Twitch and attempts to deserialize the body in to a <see cref="Quote"/>.
         /// </summary>
-        /// <param name="method">The type of operation being performed.</param>
-        /// <param name="commands">Used to parse the <see cref="MessageTwitch.body"/> for the quote.</param>
-        /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="TwitchNotify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        /// <param name="broadcaster">Contains the name of the broadcaster to be appended to the end of the quote.</param>
-        /// <returns></returns>
-        private Quote MessageToQuote(MessageTwitch message, TwitchClientOAuth broadcaster)
+        private Quote MessageToQuote(TwitchMessage message, TwitchClientOAuth broadcaster)
         {
             string quote_string = message.body;
 

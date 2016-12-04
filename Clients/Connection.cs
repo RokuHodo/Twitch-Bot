@@ -1,12 +1,13 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Net.Sockets;
 
 using TwitchBot.Debugger;
 using TwitchBot.Enums.Chat;
 
-namespace TwitchBot.Connection
+namespace TwitchBot.Clients
 {
-    class TwitchConnection
+    class Connection
     {
         private const int port = 6667;
 
@@ -19,7 +20,7 @@ namespace TwitchBot.Connection
 
         ConnectionType connection_type;
 
-        public TwitchConnection(ConnectionType _connection_type, string _user_name, string _oauth_token)
+        public Connection(ConnectionType _connection_type, string _user_name, string _oauth_token)
         {
             user_name = _user_name;
             oauth_token = _oauth_token;
@@ -33,6 +34,8 @@ namespace TwitchBot.Connection
         /// <summary>
         /// Gets the IP address based on the connection type
         /// </summary>
+        /// <param name="connection">The type of connection being established</param>
+        /// <returns></returns>
         private string GetIP(ConnectionType connection)
         {
             string ip;
@@ -59,7 +62,7 @@ namespace TwitchBot.Connection
         public void Connect()
         {
             DebugBot.BlankLine();
-            DebugBot.Notify("Connecting to the " + connection_type.ToString() + " server for \"" + user_name + "\"...");
+            DebugBot.PrintLine("Connecting to the " + connection_type.ToString() + " server for " + user_name + "...", ConsoleColor.Yellow);
 
             tcp_Client = new TcpClient(ip_address, port);
 
@@ -83,37 +86,9 @@ namespace TwitchBot.Connection
         }
 
         /// <summary>
-        /// Disconnect from the IRC server
-        /// </summary>
-        public void Disconnect()
-        {
-            DebugBot.Notify("Disconnecting from the " + connection_type.ToString() + " server for \"" + user_name + "\"...");
-
-            tcp_Client.Close();
-
-            reader.DiscardBufferedData();
-            reader.Dispose();
-            reader.Close();
-
-            writer.Flush();
-            reader.DiscardBufferedData();
-            writer.Dispose();
-            writer.Close();
-        }
-
-        /// <summary>
-        /// Reconnect to the IRC server
-        /// </summary>
-        public void Reconnect()
-        {
-            DebugBot.Notify("Reconnecting to the " + connection_type.ToString() + " server for \"" + user_name + "\"...");
-
-            Disconnect();
-            Connect();
-        }
-
-        /// <summary>
         /// Determines if the <see cref="TcpClient"/> is connected to the server
+        /// </summary>
+        /// <returns></returns>
         public bool isConnected()
         {
             return tcp_Client.Connected;

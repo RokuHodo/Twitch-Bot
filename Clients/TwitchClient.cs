@@ -32,8 +32,6 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Gets a channel object of the specified channel.
         /// </summary>
-        /// <param name="channel">Channel name.</param>
-        /// <returns></returns>
         public Channel GetChannel(string channel)
         {
             RestRequest request = Request("channels/{channel}", Method.GET);
@@ -47,8 +45,6 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Gets a stream object of the specified channel.
         /// </summary>
-        /// <param name="channel">Channel name.</param>
-        /// <returns></returns>
         public StreamResult GetStream(string channel)
         {
             RestRequest request = Request("streams/{channel}", Method.GET);
@@ -59,6 +55,9 @@ namespace TwitchBot.Clients
             return response.Data;
         }
 
+        /// <summary>
+        /// Gets the meta data between tweo channels if the user is following a channel.
+        /// </summary>
         public FollowerRelationship GetFollowerRelationship(string user, string channel)
         {
             RestRequest request = Request("users/{user}/follows/channels/{channel}", Method.GET);
@@ -70,11 +69,17 @@ namespace TwitchBot.Clients
             return response.Data;
         }
 
+        /// <summary>
+        /// Gets how long a user has been following a channel in <see cref="DateTime"/> format.
+        /// </summary>
         public DateTime GetHowlong(string user, string channel)
         {
             return GetFollowerRelationship(user, channel).created_at;
         }
 
+        /// <summary>
+        /// Gets how long a user has been following a channel and formats it into a displayable string,
+        /// </summary>
         public string GetHowLong_String(string user, string channel)
         {
             string how_long_response = string.Empty;
@@ -100,8 +105,6 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Gets a paged result of follwers for a specific channel.
         /// </summary>
-        /// <param name="channel">Channel name.</param>
-        /// <returns></returns>
         public FollowerResult GetFollowers_Page(string channel, Paging paging = default(Paging))
         {
             RestRequest request = Request("channels/{channel}/follows", Method.GET);
@@ -116,8 +119,6 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Returns a complete list of all followers of a stream.
         /// </summary>
-        /// <param name="channel">Channel name.</param>
-        /// <returns></returns>
         public IEnumerable<Follower> GetFollowers_All(string channel)
         {
             List<Follower> followers = new List<Follower>();
@@ -149,8 +150,6 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Checks to see if a channel is live.
         /// </summary>
-        /// <param name="channel">Channel name.</param>
-        /// <returns></returns>
         public bool isLive(string channel)
         {
             return GetStream(channel).stream != null;
@@ -159,13 +158,14 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Checks to see if a channel is partnered.
         /// </summary>
-        /// <param name="channel">Channel name.</param>
-        /// <returns></returns>
         public bool isPartner(string channel)
         {
             return GetChannel(channel).partner;
         }
 
+        /// <summary>
+        /// Determines if a user is following a channel.
+        /// </summary>
         public bool isFollowing(string user, string channel)
         {
             return GetFollowerRelationship(user, channel)._status != 404;
@@ -191,6 +191,9 @@ namespace TwitchBot.Clients
             return up_time;
         }
 
+        /// <summary>
+        /// Gets all of the new followers up until a certain <see cref="DateTime"/>.
+        /// </summary>
         public IEnumerable<string> GetNewFollowers(string channel, ref DateTime newest_follower_updated_at, ref Trie followers_at_launch_trie)
         {                              
             bool searching = true;
@@ -250,9 +253,6 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Send the request to the api
         /// </summary>
-        /// <param name="url">Twitch api url.</param>
-        /// <param name="method">Operation that is being performed.</param>
-        /// <returns></returns>
         public RestRequest Request(string url, Method method)
         {
             RestRequest request = new RestRequest(url, method);

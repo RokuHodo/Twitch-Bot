@@ -1,8 +1,7 @@
 ﻿namespace TwitchBot.Enums.Extensions
 {
-    enum WhiteSpace
+    enum Padding
     {
-        All,
         Both,
         Left,
         Right

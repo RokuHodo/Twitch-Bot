@@ -11,6 +11,9 @@ namespace TwitchBot.Helpers
             root = new Node();
         }
 
+        /// <summary>
+        /// Adds a word into the try and returns if it is successfull.
+        /// </summary>
         public bool Insert(string word)
         {
             bool added = false;
@@ -48,6 +51,9 @@ namespace TwitchBot.Helpers
             return added;            
         }
 
+        /// <summary>
+        /// Checks to see if a word is already in the trie.
+        /// </summary>   
         public bool Match(string word)
         {
             word = word.ToLower();
@@ -71,22 +77,32 @@ namespace TwitchBot.Helpers
             return current_node.complete_word;
         }
 
+        /// <summary>
+        /// Removes a word from the trie.
+        /// </summary>
         public void Delete(string word)
         {
             Delete(root, word, 0);
         }
 
+        /// <summary>
+        /// Recursive function that deletes a word from the trie one character at a time starting from the root.
+        /// </summary>
         private bool Delete(Node current_node, string word, int index)
         {
+            //only applicable for the node directly after the last letter in the word
             if (index == word.Length)
             {
+                //the word was never instered into the trie, don't do anything
                 if (!current_node.complete_word)
                 {
                     return false;
                 }
 
+                //set the node to false to "delete" the word
                 current_node.complete_word = false;
 
+                //delete the current node if it has no children
                 return current_node.children.Count == 0;
             }
 
@@ -96,13 +112,16 @@ namespace TwitchBot.Helpers
 
             if (!current_node.children.TryGetValue(letter, out child))
             {
+                //no node has the character associated with it, do nothing
                 return false;
             }
 
+            //the child node can safely be deleted
             if (Delete(child, word, index + 1))
-            {
+            {                
                 current_node.children.Remove(letter);
 
+                //delete the current node if it has no children
                 return current_node.children.Count == 0;
             }
 

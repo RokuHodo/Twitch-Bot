@@ -11,9 +11,12 @@ namespace TwitchBot.Json
         public string Namespace { get; set; }
         public string DateFormat { get; set; }
 
-        public T Deserialize<T>(IRestResponse response)
+        /// <summary>
+        /// Cusatom deserializer to handle null values.
+        /// </summary>
+        public type Deserialize<type>(IRestResponse response)
         {
-            return JsonConvert.DeserializeObject<T>(response.Content, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
+            return JsonConvert.DeserializeObject<type>(response.Content, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
         }
     }
 }

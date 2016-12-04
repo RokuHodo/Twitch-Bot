@@ -9,8 +9,8 @@ using TwitchBot.Enums.Debugger;
 using TwitchBot.Enums.Extensions;
 using TwitchBot.Extensions;
 using TwitchBot.Extensions.Files;
+using TwitchBot.Messages;
 using TwitchBot.Models.Bot.Chat;
-using TwitchBot.Parser;
 
 namespace TwitchBot.Chat
 {
@@ -21,7 +21,7 @@ namespace TwitchBot.Chat
              lower_variable_search = '(',
              upper_variable_search = ')';
 
-        readonly string file_path = Environment.CurrentDirectory + "/JSON/Chat/Variables.json";
+        readonly string FILE_PATH = Environment.CurrentDirectory + "/JSON/Chat/Variables.json";
 
         List<Variable> variables_list;
 
@@ -39,9 +39,9 @@ namespace TwitchBot.Chat
             DebugBot.BlankLine();
 
             DebugBot.Notify("Loading Variables");
-            DebugBot.PrintLine("File path:", file_path);
+            DebugBot.PrintLine("File path:", FILE_PATH);
 
-            variables_preloaded = File.ReadAllText(file_path);
+            variables_preloaded = File.ReadAllText(FILE_PATH);
             variables_preloaded_list = JsonConvert.DeserializeObject<List<Variable>>(variables_preloaded);
 
             if (variables_preloaded_list != null)
@@ -56,9 +56,8 @@ namespace TwitchBot.Chat
         #region Load variables
 
         /// <summary>
-        /// Loads a <see cref="Variable"/> into the <see cref="variables_dictionary"/> and then <see cref="variables_list"/> to be used in real time.
+        /// Loads all the <see cref="Variable"/>s from the <see cref="FILE_PATH"/>.
         /// </summary>
-        /// <param name="variable">The variable to load.</param>
         private void Load(Variable variable)
         {
             DebugBot.BlankLine();
@@ -101,11 +100,9 @@ namespace TwitchBot.Chat
         #region Add, Edit, and Remove variables
 
         /// <summary>
-        /// Modify the variables by adding, editting, or removing.
+        /// Modify commands by adding, editting, or removing commands.
         /// </summary>
-        /// <param name="commands">Used for parsing the body.</param>
-        /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="TwitchNotify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        public void Modify(Commands commands, MessageTwitch message)
+        public void Modify(Commands commands, TwitchMessage message)
         {
             string temp = commands.ParseAfterCommand(message),
                    key = temp.TextBefore(" ");
@@ -117,7 +114,7 @@ namespace TwitchBot.Chat
                 switch (key)
                 {
                     case "!add":
-                        Add(commands, message);
+                        Add(message);
                         break;
                     case "!edit":
                         Edit(message);
@@ -139,31 +136,32 @@ namespace TwitchBot.Chat
             }
         }
 
-        private void Add(Commands commands, MessageTwitch message)
+        /// <summary>
+        /// Adds a <see cref="Variable"/> at run time to be used in real time without needing to re-launch the bot.
+        /// Wrapper for the underlying <see cref="Add(Variable, TwitchMessage)"/> method.
+        /// </summary>
+        private void Add(TwitchMessage message)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Adding variable...");
 
             Variable variable = MessageToVariable(message);
 
-            if(variable != default(Variable))
-            {               
-                Add(variable, message);
-            }            
+            Add(variable, message);                        
         }
 
         /// <summary>
-        /// Adds a variable with a given value into the <see cref="variables_dictionary"/> in real time.
-        /// </summary>
-        /// <param name="variable">Variable to be added</param>
-        /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="TwitchNotify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        public void Add(Variable variable, MessageTwitch message)
-        {           
+        /// Adds a <see cref="Variable"/> at run time to be used in real time without needing to re-launch the bot.
+        /// Can be called externally to directly add a variable.
+        /// </summary>                
+        public void Add(Variable variable, TwitchMessage message)
+        {
+            //the varible was "empty" or could not be converted before hand, do nothing
             if (variable == default(Variable))
             {
-                TwitchNotify.Error(DebugMethod.ADD, message, nameof(variable), variable.key, DebugError.NORMAL_SERIALIZE);
+                TwitchNotify.Error(DebugMethod.ADD, message, nameof(variable), variable.key, DebugError.NORMAL_DESERIALIZE);
 
-                DebugBot.Error(DebugMethod.ADD, nameof(variable), DebugError.NORMAL_SERIALIZE);
+                DebugBot.Error(DebugMethod.ADD, nameof(variable), DebugError.NORMAL_DESERIALIZE);
 
                 return;
             }
@@ -193,7 +191,7 @@ namespace TwitchBot.Chat
                 variables_list.Add(variable);
                 variables_dictionary.Add(variable.key, variable);
 
-                JsonConvert.SerializeObject(variables_list, Formatting.Indented).OverrideFile(file_path);
+                JsonConvert.SerializeObject(variables_list, Formatting.Indented).OverrideFile(FILE_PATH);
 
                 TwitchNotify.Success(DebugMethod.ADD, message, nameof(variable), variable.key);
 
@@ -211,11 +209,9 @@ namespace TwitchBot.Chat
         }
 
         /// <summary>
-        /// Edits the value of a given variable in the <see cref="variables_dictionary"/> in real time.
+        /// Edits a pre-existing <see cref="Variable"/> at run time without needing to re-launch the bot. 
         /// </summary>
-        /// <param name="variable">Variable key to be edited.</param>
-        /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="TwitchNotify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        private void Edit(MessageTwitch message)
+        private void Edit(TwitchMessage message)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Editing variable...");
@@ -224,9 +220,9 @@ namespace TwitchBot.Chat
 
             if (variable == default(Variable))
             {
-                TwitchNotify.Error(DebugMethod.EDIT, message, nameof(variable), variable.key, DebugError.NORMAL_SERIALIZE);
+                TwitchNotify.Error(DebugMethod.EDIT, message, nameof(variable), variable.key, DebugError.NORMAL_DESERIALIZE);
 
-                DebugBot.Error(DebugMethod.EDIT, nameof(variable), DebugError.NORMAL_SERIALIZE);
+                DebugBot.Error(DebugMethod.EDIT, nameof(variable), DebugError.NORMAL_DESERIALIZE);
 
                 return;
             }
@@ -260,7 +256,7 @@ namespace TwitchBot.Chat
 
                 variables_dictionary[variable.key] = variable;
 
-                JsonConvert.SerializeObject(variables_list, Formatting.Indented).OverrideFile(file_path);
+                JsonConvert.SerializeObject(variables_list, Formatting.Indented).OverrideFile(FILE_PATH);
 
                 TwitchNotify.Success(DebugMethod.EDIT, message, nameof(variable), variable.key);
 
@@ -278,11 +274,9 @@ namespace TwitchBot.Chat
         }
 
         /// <summary>
-        /// Removed the specified variable from the <see cref="variables_dictionary"/> in real time.
+        /// Removes a pre-existing <see cref="Variable"/> at run time without needing to re-launch the bot. 
         /// </summary>
-        /// <param name="variable">Variable key to be removed.</param>
-        /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="TwitchNotify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        private void Remove(MessageTwitch message)
+        private void Remove(TwitchMessage message)
         {
             DebugBot.BlankLine();
             DebugBot.SubHeader("Removing variable...");
@@ -291,9 +285,9 @@ namespace TwitchBot.Chat
 
             if (variable == default(Variable))
             {
-                TwitchNotify.Error(DebugMethod.REMOVE, message, nameof(variable), variable.key, DebugError.NORMAL_SERIALIZE);
+                TwitchNotify.Error(DebugMethod.REMOVE, message, nameof(variable), variable.key, DebugError.NORMAL_DESERIALIZE);
 
-                DebugBot.Error(DebugMethod.REMOVE, nameof(variable), DebugError.NORMAL_SERIALIZE);
+                DebugBot.Error(DebugMethod.REMOVE, nameof(variable), DebugError.NORMAL_DESERIALIZE);
 
                 return;
             }
@@ -313,7 +307,7 @@ namespace TwitchBot.Chat
                 variables_list.Remove(variables_dictionary[variable.key]);
                 variables_dictionary.Remove(variable.key);
 
-                JsonConvert.SerializeObject(variables_list, Formatting.Indented).OverrideFile(file_path);
+                JsonConvert.SerializeObject(variables_list, Formatting.Indented).OverrideFile(FILE_PATH);
 
                 TwitchNotify.Success(DebugMethod.REMOVE, message, nameof(variable), variable.key);
 
@@ -335,20 +329,16 @@ namespace TwitchBot.Chat
         #region Boolean checks
 
         /// <summary>
-        /// Checks to see if a variable already exists.
+        /// Checks to see if a <see cref="Variable"/> already exists based on it's key.
         /// </summary>
-        /// <param name="variable">Variable key to check.</param>
-        /// <returns></returns>
-        private bool Exists(string variable)
+        private bool Exists(string key)
         {
-            return variables_dictionary.ContainsKey(variable);
+            return variables_dictionary.ContainsKey(key);
         }
 
         /// <summary>
-        /// Checks to see if the variable and value match the proper syntax.
+        /// Checks to see if the <see cref="Variable"/> has the right syntax before being loaded or modified.
         /// </summary>
-        /// <param name="variable">Variable to be checked for proper syntax.</param>
-        /// <returns></returns>
         private bool CheckSyntax(DebugMethod method, Variable variable)
         {
             //check to see if the strings are null
@@ -446,14 +436,9 @@ namespace TwitchBot.Chat
         #region String parsing        
 
         /// <summary>
-        /// Converts a message recieved from Twitch into a <see cref="Variable"/> and returns the variable.
-        /// Returns default <see cref="Variable"/> if the message could not be converted.
+        /// Converts a <see cref="TwitchMessage"/> recieved from Twitch and attempts to deserialize the body in to a <see cref="Variable"/>.
         /// </summary>
-        /// <param name="method">The type of operation being performed.</param>
-        /// <param name="commands">Parses the body of a <see cref="MessageTwitch"/> after the command and returns a <see cref="string"/> to be processed as a <see cref="Variable"/>.</param>
-        /// <param name="message">Contains the body of the message that is parsed. Also used to send a chat message or whisper by calling <see cref="TwitchNotify"/>. Contains the message sender and room to send the chat message or whisper.</param>
-        /// <returns></returns>
-        private Variable MessageToVariable(MessageTwitch message)
+        private Variable MessageToVariable(TwitchMessage message)
         {
             string variable_string = message.body;
 
@@ -479,14 +464,9 @@ namespace TwitchBot.Chat
         }
 
         /// <summary>
-        /// Converts a custom string into a <see cref="Variable"/> and returns the variable.
-        /// Called from <see cref="ExtractVariables(string, MessageTwitch, out Variable[])"/>.
-        /// Returns default <see cref="Variable"/> if the message could not be converted.
+        /// Attempts to deserialize extracted an extracted string from the body of a <see cref="TwitchMessage"/> into a <see cref="Variable"/>.
         /// </summary>
-        /// <param name="method">The type of operation being performed.</param>
-        /// <param name="variable_string">The string to be converted and serialized into a variable</param>
-        /// <returns></returns>
-        private Variable MessageToVariable(DebugMethod method, MessageTwitch message, string variable_string)
+        private Variable MessageToVariable(DebugMethod method, TwitchMessage message, string variable_string)
         {
             variable_string = variable_string.PreserializeAs<string>();
 
@@ -514,13 +494,9 @@ namespace TwitchBot.Chat
         }
 
         /// <summary>
-        /// Loops through the body of the <see cref="MessageTwitch"/> and attempts to add any variables found.
-        /// Returns the new message body with the successfully extracted varibale keys.
+        /// Parses through the body of a <see cref="TwitchMessage"/> for any posssible variable declarations between <see cref="lower_variable_search"/> and <see cref="upper_variable_indicator"/> and attempts to convert it to a <see cref="Variable"/>.
         /// </summary>
-        /// <param name="response">The body of the <see cref="MessageTwitch"/> to be parsed for variables to be extracted.</param>
-        /// <param name="variable_array">An array off all the extracted and serialized <see cref="Variable"/>.</param>
-        /// <returns></returns>
-        public string ExtractVariables(string response, MessageTwitch message, out Variable[] variable_array)
+        public string ExtractVariables(string response, TwitchMessage message, out Variable[] variable_array)
         {
             string extracted_variable = response;
 
@@ -567,9 +543,8 @@ namespace TwitchBot.Chat
         #region Helpers
 
         /// <summary>
-        /// Gets the dictionary of the loaded variables
-        /// </summary>
-        /// <returns></returns>
+        /// Returns a dictionary of all currently loaded <see cref="Variable"/>s.
+        /// </summary>        
         public Dictionary<string, Variable> GetVariables()
         {
             return variables_dictionary;

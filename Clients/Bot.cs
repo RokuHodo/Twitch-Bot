@@ -7,9 +7,10 @@ using TwitchBot.Chat;
 using TwitchBot.Debugger;
 using TwitchBot.Enums.Chat;
 using TwitchBot.Extensions;
+using TwitchBot.Messages;
+using TwitchBot.Messages.Parser;
 using TwitchBot.Models.Bot.Chat;
 using TwitchBot.Models.TwitchAPI;
-using TwitchBot.Parser;
 
 using TwitchBot.Helpers;
 
@@ -32,7 +33,7 @@ namespace TwitchBot.Clients
         Commands commands;
         SpamFilter spam_filter;
 
-        Queue<MessageTwitch> whisper_queue,
+        Queue<TwitchMessage> whisper_queue,
                        private_msg_queue;
                 
         IEnumerable<Follower> followers_at_launch_IE;
@@ -44,7 +45,7 @@ namespace TwitchBot.Clients
 
         public Bot(TwitchClientOAuth _bot, TwitchClientOAuth _broadcaster)
         {
-            MessageTwitch message = new MessageTwitch();
+            TwitchMessage message = new TwitchMessage();
 
             last_whisper_sent = DateTime.Now;
             last_private_msg_sent = DateTime.Now;
@@ -80,8 +81,8 @@ namespace TwitchBot.Clients
             commands = new Commands(variables);
             spam_filter = new SpamFilter();
 
-            whisper_queue = new Queue<MessageTwitch>();
-            private_msg_queue = new Queue<MessageTwitch>();
+            whisper_queue = new Queue<TwitchMessage>();
+            private_msg_queue = new Queue<TwitchMessage>();
             TwitchNotify.SetQueues(ref private_msg_queue, ref whisper_queue);
 
             //get the list of all users following the broadcaster
@@ -99,13 +100,16 @@ namespace TwitchBot.Clients
 
             //JsonConvert.SerializeObject(temp_follower_array, Formatting.Indented).OverrideFile(Environment.CurrentDirectory + "/JSON/Chat/Followers Array.json");
 
-            //store the date of the newest follower 
-            newest_follower_updated_at = temp_follower_array[0].created_at;
+            if(temp_follower_array.Length > 0)
+            {
+                //store the date of the newest follower
+                newest_follower_updated_at = temp_follower_array[0].created_at;
 
-            Thread.Sleep(50);
+                Thread.Sleep(50);
 
-            //Thread _Monitor_Followers = new Thread(new ThreadStart(Monitor_Followers));
-            //_Monitor_Followers.Start();
+                //Thread _Monitor_Followers = new Thread(new ThreadStart(Monitor_Followers));
+                //_Monitor_Followers.Start();
+            }
         }
 
         #region Join and Leave a channel
@@ -113,7 +117,6 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Join a channel to moderate.
         /// </summary>
-        /// <param name="broadcaster_user_name">Channel to join.</param>
         public void JoinChannel(string broadcaster_user_name)
         {
             DebugBot.BlankLine();
@@ -128,7 +131,7 @@ namespace TwitchBot.Clients
         #region Process commands
 
         /// <summary>
-        /// Attempts to process a command if there is something to process and if enough time has passed.
+        /// Sends a message to Twitch if there are any queued.
         /// </summary>
         public void TrySendingPrivateMessage()
         {
@@ -137,7 +140,7 @@ namespace TwitchBot.Clients
                 return;
             }
 
-            MessageTwitch message;
+            TwitchMessage message;
 
             //make sure we don't try and process a "blank" message
             do
@@ -154,7 +157,7 @@ namespace TwitchBot.Clients
 
             if (message.command != default(Command))
             {
-                if (CheckPermission(message.message_type, message))
+                if (CanProcessMessage(message.message_type, message))
                 {
                     ProcessCommand(MessageType.Chat, message);                    
                 }
@@ -167,6 +170,9 @@ namespace TwitchBot.Clients
             last_private_msg_sent = DateTime.Now;
         }
 
+        /// <summary>
+        /// Sends a whisper to its respective sender if there are any queued.
+        /// </summary>
         public void TrySendingWhisper()
         {
             if (DateTime.Now - last_whisper_sent < TimeSpan.FromMilliseconds(WHISPER_DELAY) || whisper_queue.Count == 0)
@@ -174,7 +180,7 @@ namespace TwitchBot.Clients
                 return;
             }
 
-            MessageTwitch message;
+            TwitchMessage message;
 
             //make sure we don't try and process a "blank" message
             do
@@ -191,7 +197,7 @@ namespace TwitchBot.Clients
 
             if (message.command != default(Command))
             {
-                if (CheckPermission(message.message_type, message))
+                if (CanProcessMessage(message.message_type, message))
                 {
                     ProcessCommand(MessageType.Whisper, message);
                 }
@@ -207,18 +213,15 @@ namespace TwitchBot.Clients
         /// <summary>
         /// Checks to make sure a user has the right permission level and is using the command in the right chat room.
         /// </summary>
-        /// <param name="message_type">Where the command should be called in.</param>
-        /// <param name="message">The message that contains the command information.</param>
-        /// <returns></returns>
-        private bool CheckPermission(MessageType message_type, MessageTwitch message)
+        private bool CanProcessMessage(MessageType message_type, TwitchMessage message)
         {
-            UserType permisison = message.command.permission;
+            UserType requirement = message.command.permission;
 
             //make sure the user has the correct permission
             //NOTE: a user always has a UserType of "viewer" when sending a whisper can cause issues if using mod only commands through whispers
-            if (message.sender.user_type < permisison)
+            if (!message.sender.MeetskPermissionRequirement(message.sender.user_type, requirement))
             {
-                bot.SendWhisper(message.sender.name, $"You need to be a(n) {permisison.ToString()} to use {message.command.key}");
+                bot.SendWhisper(message.sender.name, $"You need to be a(n) {requirement.ToString()} to use {message.command.key}");
 
                 return false;
             }
@@ -235,10 +238,8 @@ namespace TwitchBot.Clients
 
         /// <summary>
         /// Process a command in the chat or whisper queue.
-        /// </summary>
-        /// <param name="message_type">Type of message to send.</param>
-        /// <param name="message">Required to send a chat message or whisper by calling <see cref="TwitchNotify"/>.Contains the message sender and room to send the chat message or whisper.</param>
-        private void ProcessCommand(MessageType message_type, MessageTwitch message)
+        /// </summary>        
+        private void ProcessCommand(MessageType message_type, TwitchMessage message)
         {                     
             commands.ResetLastUsed(message.command);
 
@@ -284,10 +285,10 @@ namespace TwitchBot.Clients
                     bot.SendResponse(message_type, message, commands.GetCommands());
                     break;
                 case "!shoutout":
-                    bot.SendMessage(message.room, commands.ShoutOut(message, broadcaster));
+                    bot.SendMessage(message.room, commands.GetShoutoutMessage(message, broadcaster));
                     break;
                 default:
-                    bot.SendResponse(message_type, message, commands.GetResponse(message.command.key, variables));
+                    bot.SendResponse(message_type, message, commands.GetCommandResponse(message.command.key, variables));
                     break;
             }
         }
@@ -336,10 +337,10 @@ namespace TwitchBot.Clients
 
                 //DebugBot.PrintLine(irc_message);
 
-                MessageTwitch message = MessageParser.Parse(commands, irc_message, broadcaster.display_name);
+                TwitchMessage message = MessageParser.Parse(commands, irc_message, broadcaster.display_name);
 
                 //check to see if anyting is "blank"
-                if (message == default(MessageTwitch) || message.sender == default(Sender))
+                if (message == default(TwitchMessage) || message.sender == default(Sender))
                 {
                     continue;
                 }
@@ -358,7 +359,7 @@ namespace TwitchBot.Clients
                 }
                 
                 //skip the message if it contains spam
-                if (!spam_filter.CheckMessage(message, bot, broadcaster))
+                if (spam_filter.ContainsSpam(message, bot, broadcaster))
                 {
                     continue;
                 }                
@@ -440,7 +441,7 @@ namespace TwitchBot.Clients
             {
                 string input = Console.ReadLine();
 
-                MessageTwitch message = new MessageTwitch
+                TwitchMessage message = new TwitchMessage
                 {
                     body = input,
 
@@ -455,6 +456,9 @@ namespace TwitchBot.Clients
             }
         }
 
+        /// <summary>
+        /// Checks for new followers and announces them.
+        /// </summary>
         private void Monitor_Followers()
         {
             while (true)
@@ -488,7 +492,7 @@ namespace TwitchBot.Clients
                         user_type = UserType.mod
                     };
 
-                    MessageTwitch message = new MessageTwitch
+                    TwitchMessage message = new TwitchMessage
                     {
                         room = broadcaster.name,
                         body = "Thank you for the follow, " + follower + "!",
